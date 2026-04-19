@@ -66,8 +66,13 @@ iwr -useb https://raw.githubusercontent.com/cgdev2019/ldapex/main/install.ps1 | 
 ```
 
 Pin a specific version with `LDAPEX_VERSION=v1.2.3` (shell) or
-`$env:LDAPEX_VERSION='v1.2.3'` (PowerShell). Uninstall on Unix with
-`./uninstall.sh` (use `--all` to also drop `~/.ldapex`).
+`$env:LDAPEX_VERSION='v1.2.3'` (PowerShell).
+
+The installer asks whether to place a Ldapex shortcut on the Desktop.
+Skip the prompt with `LDAPEX_DESKTOP_ICON=0` (or `1` to force-create
+it non-interactively), or pass `-DesktopIcon No` to the PowerShell
+script. Uninstall on Unix with `./uninstall.sh` (use `--all` to also
+drop `~/.ldapex`). The uninstaller removes the Desktop shortcut too.
 
 ### Developers (from source)
 

@@ -8,17 +8,19 @@
 #   - detects the OS and CPU architecture
 #   - queries the GitHub Releases API for the latest Ldapex tag
 #   - downloads the matching asset (Linux → AppImage, macOS → dmg)
-#   - Linux:   places the AppImage at $PREFIX/bin/ldapex (+x) and
-#              drops a .desktop file under ~/.local/share/applications
-#              so it shows up in the app launcher
+#   - Linux:   places the AppImage at $PREFIX/bin/ldapex (+x), drops
+#              a .desktop launcher under ~/.local/share/applications
+#              and (by default) also puts one on the Desktop
 #   - macOS:   mounts the dmg, copies Ldapex.app to /Applications,
-#              unmounts. Requires sudo if writing to /Applications.
+#              optionally creates an alias on the Desktop
 #
 # Overrides:
-#   PREFIX=/custom/path     install the Linux binary here (default:
-#                           $HOME/.local, create $HOME/.local/bin as
-#                           needed)
-#   LDAPEX_VERSION=v1.2.3   pin a specific release tag
+#   PREFIX=/custom/path       install the Linux binary here
+#                             (default: $HOME/.local)
+#   LDAPEX_VERSION=v1.2.3     pin a specific release tag
+#   LDAPEX_DESKTOP_ICON=0     skip the Desktop shortcut
+#   LDAPEX_DESKTOP_ICON=1     force-create it (default when stdin is
+#                             not a TTY, i.e. curl | sh)
 #
 # Exit code 0 on success, non-zero otherwise.
 
@@ -107,9 +109,7 @@ install_linux() {
   chmod +x "$DEST"
   log "Installed binary at $DEST"
 
-  DESKTOP="$APPS_DIR/ldapex.desktop"
-  cat > "$DESKTOP" <<EOF
-[Desktop Entry]
+  DESKTOP_CONTENT="[Desktop Entry]
 Type=Application
 Name=Ldapex
 Comment=LDAP directory browser
@@ -117,8 +117,25 @@ Exec=$DEST
 Icon=ldapex
 Categories=Network;Utility;
 Terminal=false
-EOF
-  log "Created launcher at $DESKTOP"
+"
+
+  LAUNCHER="$APPS_DIR/ldapex.desktop"
+  printf '%s' "$DESKTOP_CONTENT" > "$LAUNCHER"
+  log "Created launcher at $LAUNCHER"
+
+  if want_desktop_icon; then
+    DESKTOP_DIR="$(resolve_desktop_dir_linux)"
+    if [ -d "$DESKTOP_DIR" ]; then
+      SHORTCUT="$DESKTOP_DIR/ldapex.desktop"
+      printf '%s' "$DESKTOP_CONTENT" > "$SHORTCUT"
+      chmod +x "$SHORTCUT"
+      # GNOME 43+: mark as trusted so the icon doesn't show the warning.
+      gio set "$SHORTCUT" metadata::trusted true 2>/dev/null || true
+      log "Placed shortcut at $SHORTCUT"
+    else
+      warn "No Desktop folder found — skipping the desktop shortcut"
+    fi
+  fi
 
   case ":$PATH:" in
     *":$BIN_DIR:"*) ;;
@@ -156,7 +173,52 @@ install_macos() {
   $COPY "$APP_SRC" "$APP_DEST"
   hdiutil detach "$MOUNT_DIR" -quiet
   log "Installed $APP_DEST"
+
+  if want_desktop_icon; then
+    # macOS Finder aliases are not plain symlinks; ask AppleScript to
+    # build a real one so double-click and drag & drop keep working.
+    osascript <<AS >/dev/null 2>&1 || warn "could not create desktop alias"
+tell application "Finder"
+  make new alias file at (path to desktop folder) \
+    to (POSIX file "$APP_DEST")
+end tell
+AS
+    log "Placed alias on the Desktop"
+  fi
+
   log "Done. Launch from Spotlight or: open -a Ldapex"
+}
+
+resolve_desktop_dir_linux() {
+  if command -v xdg-user-dir >/dev/null 2>&1; then
+    d="$(xdg-user-dir DESKTOP 2>/dev/null || true)"
+    [ -n "$d" ] && [ -d "$d" ] && { printf '%s' "$d"; return; }
+  fi
+  [ -d "$HOME/Desktop" ] && { printf '%s' "$HOME/Desktop"; return; }
+  [ -d "$HOME/Bureau" ] && { printf '%s' "$HOME/Bureau"; return; }
+  printf ''
+}
+
+# Returns 0 (true) if we should create a Desktop shortcut.
+#   LDAPEX_DESKTOP_ICON=0 → never
+#   LDAPEX_DESKTOP_ICON=1 → always
+#   otherwise, ask the user when /dev/tty is available, default yes
+#   when not (piped install).
+want_desktop_icon() {
+  case "${LDAPEX_DESKTOP_ICON:-}" in
+    0|no|false) return 1 ;;
+    1|yes|true) return 0 ;;
+  esac
+  if [ -r /dev/tty ] && [ -w /dev/tty ]; then
+    printf 'Create a Ldapex shortcut on the Desktop? [Y/n] ' > /dev/tty
+    reply=""
+    IFS= read -r reply < /dev/tty || true
+    case "$reply" in
+      [nN]|[nN][oO]) return 1 ;;
+      *) return 0 ;;
+    esac
+  fi
+  return 0
 }
 
 case "$OS_KEY" in

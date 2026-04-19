@@ -13,7 +13,15 @@
 
 [CmdletBinding()]
 param(
-  [string]$Version = $env:LDAPEX_VERSION
+  [string]$Version = $env:LDAPEX_VERSION,
+  [ValidateSet('Ask', 'Yes', 'No')]
+  [string]$DesktopIcon = $(
+    switch -Regex ($env:LDAPEX_DESKTOP_ICON) {
+      '^(0|no|false)$' { 'No'; break }
+      '^(1|yes|true)$' { 'Yes'; break }
+      default { 'Ask' }
+    }
+  )
 )
 
 $ErrorActionPreference = 'Stop'
@@ -71,4 +79,46 @@ if ($asset.name -match '\.msi$') {
 }
 
 Remove-Item $installer -Force -ErrorAction SilentlyContinue
-Write-Step 'Done. Find Ldapex in the Start menu.'
+
+# --- Desktop shortcut -----------------------------------------------
+
+function Want-DesktopIcon {
+  if ($DesktopIcon -eq 'Yes') { return $true }
+  if ($DesktopIcon -eq 'No')  { return $false }
+  if ([Environment]::UserInteractive) {
+    $reply = Read-Host 'Create a Ldapex shortcut on the Desktop? [Y/n]'
+    if ($reply -match '^(n|no)$') { return $false }
+  }
+  return $true
+}
+
+function Find-LdapexExe {
+  $candidates = @(
+    "$env:ProgramFiles\Ldapex\ldapex-app.exe",
+    "$env:ProgramFiles\Ldapex\Ldapex.exe",
+    "${env:ProgramFiles(x86)}\Ldapex\ldapex-app.exe",
+    "$env:LOCALAPPDATA\Programs\Ldapex\ldapex-app.exe"
+  )
+  foreach ($p in $candidates) { if (Test-Path $p) { return $p } }
+  return $null
+}
+
+if (Want-DesktopIcon) {
+  $exe = Find-LdapexExe
+  if ($exe) {
+    $desktop = [Environment]::GetFolderPath('Desktop')
+    $lnk = Join-Path $desktop 'Ldapex.lnk'
+    $shell = New-Object -ComObject WScript.Shell
+    $shortcut = $shell.CreateShortcut($lnk)
+    $shortcut.TargetPath = $exe
+    $shortcut.WorkingDirectory = Split-Path $exe -Parent
+    $shortcut.IconLocation = "$exe,0"
+    $shortcut.Description = 'LDAP directory browser'
+    $shortcut.Save()
+    Write-Step "Placed shortcut at $lnk"
+  } else {
+    Write-Warn 'Could not locate the installed Ldapex executable — skipping the desktop shortcut.'
+  }
+}
+
+Write-Step 'Done. Find Ldapex in the Start menu or on the Desktop.'
