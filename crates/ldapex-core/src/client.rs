@@ -292,6 +292,12 @@ impl LdapClient {
     }
 
     /// Low-level search used by all search-flavoured methods.
+    ///
+    /// `ldap3::Ldap::with_search_options` mutates state on the handle
+    /// **and is sticky** — a sizelimit set by an earlier call leaks
+    /// into subsequent searches. We therefore reset the options on
+    /// every entry, applying the requested `size_limit` (or 0 = the
+    /// server default = unlimited for the rootdn) explicitly.
     async fn raw_search(
         &self,
         base: &str,
@@ -301,10 +307,10 @@ impl LdapClient {
         size_limit: Option<u32>,
     ) -> Result<Vec<Entry>> {
         let mut guard = self.inner.lock().await;
-        if let Some(limit) = size_limit {
-            let opts = SearchOptions::new().sizelimit(i32::try_from(limit).unwrap_or(i32::MAX));
-            guard.with_search_options(opts);
-        }
+        let limit_i32 = size_limit
+            .map(|n| i32::try_from(n).unwrap_or(i32::MAX))
+            .unwrap_or(0);
+        guard.with_search_options(SearchOptions::new().sizelimit(limit_i32));
         let (raw_entries, res) = guard.search(base, scope, filter, attrs).await?.success()?;
         drop(res);
 
