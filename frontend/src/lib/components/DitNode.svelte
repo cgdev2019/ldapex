@@ -141,7 +141,7 @@
 
   .label {
     flex: 1;
-    padding: 0.1rem 0.25rem;
+    padding: 0.1rem 0.3rem;
     background: transparent;
     border: none;
     color: var(--color-text);
@@ -149,7 +149,8 @@
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 0.3rem;
+    justify-content: flex-start;
+    gap: 0.35rem;
     min-width: 0;
     border-radius: var(--radius-sm);
   }

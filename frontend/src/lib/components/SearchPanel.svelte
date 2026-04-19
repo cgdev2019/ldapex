@@ -295,6 +295,7 @@
   .results button {
     display: flex;
     align-items: flex-start;
+    justify-content: flex-start;
     gap: 0.5rem;
     width: 100%;
     background: none;

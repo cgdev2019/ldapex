@@ -353,6 +353,7 @@
     cursor: pointer;
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     gap: 0.7rem;
     min-width: 0;
     border-radius: var(--radius-md);
