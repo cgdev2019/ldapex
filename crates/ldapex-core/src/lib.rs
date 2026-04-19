@@ -13,6 +13,7 @@ pub mod types;
 
 pub use client::{ConnectOptions, LdapClient, TlsMode};
 pub use error::{LdapexError, Result};
+pub use ldif::entries_to_ldif;
 pub use profile::{ConnectionProfile, ProfileStore, PROFILE_SCHEMA_VERSION};
 pub use types::{
     Attribute, AttributeValue, DnLabel, Entry, Modification, ObjectClassDef, ObjectClassKind,
