@@ -199,7 +199,13 @@ export interface ConnectionProfile {
   base_dn: string;
   tls: TlsMode;
   timeout_secs?: number | null;
-  save_password: boolean;
+  /**
+   * Bind password persisted in `~/.ldapex/profiles.toml`. Omit / leave
+   * empty to force a password prompt at connect time.
+   *
+   * Stored in plain text — the backend chmods the file to 0600 on Unix.
+   */
+  password?: string | null;
 }
 
 export interface ProfileSummary extends ConnectionProfile {
@@ -218,28 +224,20 @@ export async function profileList(): Promise<ProfileSummary[]> {
   return invoke<ProfileSummary[]>('profile_list');
 }
 
-export async function profileSave(profile: ConnectionProfile): Promise<ConnectionProfile> {
-  return invoke<ConnectionProfile>('profile_save', { profile });
+export async function profileSave(profile: ConnectionProfile): Promise<ProfileSummary> {
+  return invoke<ProfileSummary>('profile_save', { profile });
 }
 
 export async function profileDelete(id: string): Promise<void> {
   await invoke('profile_delete', { id });
 }
 
-export async function profileSetPassword(id: string, password: string): Promise<void> {
-  await invoke('profile_set_password', { id, password });
-}
-
-export async function profileClearPassword(id: string): Promise<void> {
-  await invoke('profile_clear_password', { id });
-}
-
 export async function profileExport(): Promise<string> {
   return invoke<string>('profile_export');
 }
 
-export async function profileImport(json: string): Promise<ConnectionProfile[]> {
-  return invoke<ConnectionProfile[]>('profile_import', { json });
+export async function profileImport(json: string): Promise<ProfileSummary[]> {
+  return invoke<ProfileSummary[]>('profile_import', { json });
 }
 
 export async function profileConnect(input: ProfileConnectInput): Promise<ConnectionProfile> {

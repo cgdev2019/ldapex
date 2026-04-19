@@ -41,7 +41,7 @@
     if (!profile.has_saved_password) {
       passwordPromptFor = profile;
       pendingPassword = '';
-      pendingRemember = profile.save_password;
+      pendingRemember = false;
       return;
     }
     try {
@@ -70,7 +70,7 @@
 
   async function confirmDelete(profile: ProfileSummary) {
     const yes = window.confirm(
-      `Supprimer le profil « ${profile.name} » ?\n\nLe mot de passe stocké sera aussi retiré du trousseau.`
+      `Supprimer le profil « ${profile.name} » ?\n\nLe mot de passe stocké sera aussi retiré.`
     );
     if (!yes) return;
     try {
@@ -85,7 +85,7 @@
     try {
       const json = await profileExport();
       await navigator.clipboard.writeText(json);
-      window.alert('Profils copiés dans le presse-papier (JSON).');
+      window.alert('Profils copiés dans le presse-papier (JSON, mots de passe inclus).');
     } catch (err) {
       error = formatError(err);
     }
@@ -129,7 +129,7 @@
             <div class="line1">
               <strong>{p.name}</strong>
               {#if p.has_saved_password}
-                <span class="tag" title="Mot de passe en trousseau OS">🔑</span>
+                <span class="tag" title="Mot de passe enregistré dans ~/.ldapex/profiles.toml">🔑</span>
               {/if}
               <span class="tls">{p.tls}</span>
             </div>
@@ -196,7 +196,7 @@
 
       <label class="inline">
         <input type="checkbox" bind:checked={pendingRemember} />
-        <span>Mémoriser dans le trousseau OS</span>
+        <span>Mémoriser dans le profil (~/.ldapex/profiles.toml)</span>
       </label>
 
       <div class="actions">

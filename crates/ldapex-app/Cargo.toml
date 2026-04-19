@@ -26,7 +26,6 @@ tracing-subscriber.workspace = true
 thiserror.workspace = true
 toml = "0.8"
 dirs = "5"
-keyring = "3"
 uuid = { version = "1", features = ["v4"] }
 
 [dev-dependencies]

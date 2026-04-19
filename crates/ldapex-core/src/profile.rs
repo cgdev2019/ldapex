@@ -1,10 +1,11 @@
 //! Connection profiles — user-saved LDAP endpoints.
 //!
-//! Profiles are pure data: the storage layer (file + OS keyring) lives
-//! in the `ldapex-app` crate because it uses OS-specific paths and
-//! needs Tauri/dirs. The `password` is **never** serialised: it is
-//! pulled from the platform keyring at connect time when
-//! `save_password` is set.
+//! Profiles are pure data: the storage layer (TOML file) lives in the
+//! `ldapex-app` crate because it uses OS-specific paths.
+//!
+//! **Security note.** Profiles include the bind password directly in
+//! the file. The storage layer writes the file with 0600 permissions
+//! on Unix. See README §"Profiles and secrets" for the trade-off.
 
 use serde::{Deserialize, Serialize};
 
@@ -12,13 +13,12 @@ use crate::client::TlsMode;
 
 /// Monotonic version of the profile file format. Increment when
 /// changing fields to support migrations.
-pub const PROFILE_SCHEMA_VERSION: u32 = 1;
+pub const PROFILE_SCHEMA_VERSION: u32 = 2;
 
 /// One saved LDAP endpoint.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ConnectionProfile {
-    /// Stable identifier (UUID v4 or any unique string). Used as the
-    /// keyring account when `save_password = true`.
+    /// Stable identifier (UUID v4 or any unique string).
     pub id: String,
 
     /// Human-readable label shown in the profile picker.
@@ -42,15 +42,14 @@ pub struct ConnectionProfile {
     #[serde(default)]
     pub timeout_secs: Option<u64>,
 
-    /// Whether the bind password should be stored in the OS keyring.
-    /// When `false`, the UI prompts for it at every connection.
-    #[serde(default)]
-    pub save_password: bool,
+    /// Bind password persisted in the profile file. `None` (or missing
+    /// in TOML) means the UI prompts for it at every connection.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub password: Option<String>,
 }
 
 impl ConnectionProfile {
-    /// Build a new profile with a generated id (timestamp-based to
-    /// avoid a uuid dependency here — the app layer may override).
+    /// Build a new profile with no password and default TLS.
     #[must_use]
     pub fn new_with_id(
         id: impl Into<String>,
@@ -65,7 +64,7 @@ impl ConnectionProfile {
             base_dn: String::new(),
             tls: TlsMode::default(),
             timeout_secs: Some(30),
-            save_password: false,
+            password: None,
         }
     }
 }
@@ -150,12 +149,25 @@ mod tests {
             base_dn: "dc=corp".into(),
             tls: TlsMode::Ldaps,
             timeout_secs: Some(15),
-            save_password: true,
+            password: Some("s3cret".into()),
         });
 
         let text = toml::to_string(&store).expect("serialize");
         let back: ProfileStore = toml::from_str(&text).expect("deserialize");
         assert_eq!(store.profiles, back.profiles);
         assert_eq!(store.version, back.version);
+    }
+
+    #[test]
+    fn password_field_is_omitted_when_none() {
+        let store = ProfileStore {
+            version: PROFILE_SCHEMA_VERSION,
+            profiles: vec![ConnectionProfile::new_with_id("a", "A", "ldap://a")],
+        };
+        let text = toml::to_string(&store).expect("serialize");
+        assert!(
+            !text.contains("password"),
+            "password should be omitted when None: {text}",
+        );
     }
 }

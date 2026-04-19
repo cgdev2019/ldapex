@@ -32,8 +32,6 @@ pub fn run() {
             commands::profile_list,
             commands::profile_save,
             commands::profile_delete,
-            commands::profile_set_password,
-            commands::profile_clear_password,
             commands::profile_export,
             commands::profile_import,
             commands::profile_connect,

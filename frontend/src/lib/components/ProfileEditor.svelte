@@ -1,9 +1,7 @@
 <script lang="ts">
   import {
     formatError,
-    profileClearPassword,
     profileSave,
-    profileSetPassword,
     type ConnectionProfile,
     type ProfileSummary,
     type TlsMode
@@ -12,7 +10,7 @@
   interface Props {
     profile?: ProfileSummary | null;
     onclose: () => void;
-    onsaved: (profile: ConnectionProfile) => void;
+    onsaved: (profile: ProfileSummary) => void;
   }
 
   let { profile = null, onclose, onsaved }: Props = $props();
@@ -23,9 +21,7 @@
   let bindDn = $state(profile?.bind_dn ?? '');
   let baseDn = $state(profile?.base_dn ?? '');
   let tls = $state<TlsMode>(profile?.tls ?? 'none');
-  let savePassword = $state(profile?.save_password ?? false);
-  let password = $state('');
-  let clearExistingPassword = $state(false);
+  let password = $state(profile?.password ?? '');
   let error = $state<string | null>(null);
   let saving = $state(false);
 
@@ -35,6 +31,7 @@
     error = null;
     try {
       const id = profile?.id ?? crypto.randomUUID();
+      const trimmedPassword = password.trim();
       const next: ConnectionProfile = {
         id,
         name: name.trim(),
@@ -43,18 +40,9 @@
         base_dn: baseDn.trim(),
         tls,
         timeout_secs: profile?.timeout_secs ?? 30,
-        save_password: savePassword
+        password: trimmedPassword.length > 0 ? trimmedPassword : null
       };
       const saved = await profileSave(next);
-
-      if (savePassword && password.length > 0) {
-        await profileSetPassword(id, password);
-      } else if (clearExistingPassword || !savePassword) {
-        if (profile?.has_saved_password) {
-          await profileClearPassword(id);
-        }
-      }
-
       onsaved(saved);
     } catch (err) {
       error = formatError(err);
@@ -104,28 +92,18 @@
         </select>
       </label>
 
-      <fieldset>
-        <legend>Mot de passe</legend>
-        <label class="inline">
-          <input type="checkbox" bind:checked={savePassword} />
-          <span>Mémoriser dans le trousseau OS</span>
-        </label>
-
-        {#if savePassword}
-          <label>
-            <span>{profile?.has_saved_password ? 'Remplacer par' : 'Mot de passe'}</span>
-            <input type="password" bind:value={password} autocomplete="new-password" />
-          </label>
-          {#if isNew || !profile?.has_saved_password}
-            <p class="hint">Vide ⇒ demandera à chaque connexion.</p>
-          {/if}
-        {:else if profile?.has_saved_password}
-          <label class="inline warn">
-            <input type="checkbox" bind:checked={clearExistingPassword} />
-            <span>Supprimer le mot de passe déjà stocké</span>
-          </label>
-        {/if}
-      </fieldset>
+      <label>
+        <span>Mot de passe (vide = demandé à chaque connexion)</span>
+        <input
+          type="password"
+          bind:value={password}
+          autocomplete="new-password"
+          placeholder={profile?.has_saved_password ? '•••••• (déjà stocké, laisser vide pour conserver)' : ''}
+        />
+        <p class="hint">
+          Stocké en clair dans <code>~/.ldapex/profiles.toml</code> (chmod 0600 sous Unix).
+        </p>
+      </label>
 
       {#if error}
         <p class="status error">{error}</p>
@@ -177,14 +155,14 @@
     font-size: 0.9rem;
   }
 
-  label.inline {
-    flex-direction: row;
-    align-items: center;
-    gap: 0.4rem;
-  }
-
   label > span {
     color: light-dark(#555, #aaa);
+  }
+
+  .hint {
+    margin: 0;
+    font-size: 0.75rem;
+    color: light-dark(#777, #888);
   }
 
   input[type='text'],
@@ -198,29 +176,11 @@
     border-radius: 4px;
   }
 
-  fieldset {
-    border: 1px solid light-dark(#ddd, #333);
-    border-radius: 5px;
-    padding: 0.5rem 0.75rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-  }
-
-  legend {
-    font-weight: 600;
-    padding: 0 0.25rem;
-    font-size: 0.85rem;
-  }
-
-  .hint {
-    font-size: 0.8rem;
-    color: light-dark(#777, #888);
-    margin: 0;
-  }
-
-  .warn {
-    color: #c0392b;
+  code {
+    font-family: ui-monospace, 'SF Mono', 'Cascadia Mono', monospace;
+    background: light-dark(#eee, #222);
+    padding: 0 0.2em;
+    border-radius: 3px;
   }
 
   .actions {

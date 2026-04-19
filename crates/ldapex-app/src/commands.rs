@@ -174,9 +174,8 @@ pub async fn ldap_fetch_schema(state: State<'_, AppState>) -> CoreResult<SchemaI
 
 // -------------------- Profile commands --------------------
 
-/// Saved profile summary returned to the UI. Mirrors
-/// `ldapex_core::ConnectionProfile` + an extra `has_saved_password`
-/// flag sourced from the keyring.
+/// Summary returned to the UI. The `has_saved_password` flag lets the
+/// picker decide whether to prompt for a password before connecting.
 #[derive(Debug, Serialize)]
 pub struct ProfileSummary {
     #[serde(flatten)]
@@ -184,27 +183,27 @@ pub struct ProfileSummary {
     pub has_saved_password: bool,
 }
 
+fn summarise(profile: ConnectionProfile) -> ProfileSummary {
+    let has_saved_password = profile.password.is_some();
+    ProfileSummary {
+        profile,
+        has_saved_password,
+    }
+}
+
 #[tauri::command]
 pub fn profile_list(state: State<'_, AppState>) -> CoreResult<Vec<ProfileSummary>> {
     let profiles = state.profiles.list().map_err(profile_err)?;
-    Ok(profiles
-        .into_iter()
-        .map(|p| {
-            let has_saved_password = state.profiles.get_password(&p.id).ok().flatten().is_some();
-            ProfileSummary {
-                profile: p,
-                has_saved_password,
-            }
-        })
-        .collect())
+    Ok(profiles.into_iter().map(summarise).collect())
 }
 
 #[tauri::command]
 pub fn profile_save(
     state: State<'_, AppState>,
     profile: ConnectionProfile,
-) -> CoreResult<ConnectionProfile> {
-    state.profiles.save(profile).map_err(profile_err)
+) -> CoreResult<ProfileSummary> {
+    let saved = state.profiles.save(profile).map_err(profile_err)?;
+    Ok(summarise(saved))
 }
 
 #[tauri::command]
@@ -213,38 +212,20 @@ pub fn profile_delete(state: State<'_, AppState>, id: String) -> CoreResult<()> 
 }
 
 #[tauri::command]
-pub fn profile_set_password(
-    state: State<'_, AppState>,
-    id: String,
-    password: String,
-) -> CoreResult<()> {
-    state
-        .profiles
-        .set_password(&id, &password)
-        .map_err(profile_err)
-}
-
-#[tauri::command]
-pub fn profile_clear_password(state: State<'_, AppState>, id: String) -> CoreResult<()> {
-    state.profiles.clear_password(&id).map_err(profile_err)
-}
-
-#[tauri::command]
 pub fn profile_export(state: State<'_, AppState>) -> CoreResult<String> {
     state.profiles.export_json().map_err(profile_err)
 }
 
 #[tauri::command]
-pub fn profile_import(
-    state: State<'_, AppState>,
-    json: String,
-) -> CoreResult<Vec<ConnectionProfile>> {
-    state.profiles.import_json(&json).map_err(profile_err)
+pub fn profile_import(state: State<'_, AppState>, json: String) -> CoreResult<Vec<ProfileSummary>> {
+    let merged = state.profiles.import_json(&json).map_err(profile_err)?;
+    Ok(merged.into_iter().map(summarise).collect())
 }
 
-/// Connect using a saved profile. `password` may be empty — in that
-/// case the stored keyring entry is used. `remember` (when true)
-/// writes the provided password to the keyring on successful bind.
+/// Connect using a saved profile. `password` is optional:
+/// - if provided, it overrides the one stored in the profile (and, when
+///   `remember = true`, overwrites it for subsequent connections);
+/// - if absent, the password stored in the profile is used.
 #[derive(Debug, Deserialize)]
 pub struct ProfileConnectInput {
     pub id: String,
@@ -259,7 +240,7 @@ pub async fn profile_connect(
     state: State<'_, AppState>,
     input: ProfileConnectInput,
 ) -> CoreResult<ConnectionProfile> {
-    let profile = state
+    let mut profile = state
         .profiles
         .list()
         .map_err(profile_err)?
@@ -267,15 +248,13 @@ pub async fn profile_connect(
         .find(|p| p.id == input.id)
         .ok_or_else(|| LdapexError::Internal(format!("profile not found: {}", input.id)))?;
 
-    let password = if let Some(pw) = input.password.as_ref().filter(|s| !s.is_empty()) {
-        pw.clone()
-    } else {
-        state
-            .profiles
-            .get_password(&profile.id)
-            .map_err(profile_err)?
-            .ok_or_else(|| LdapexError::InvalidCredentials)?
-    };
+    let password = input
+        .password
+        .as_ref()
+        .filter(|s| !s.is_empty())
+        .cloned()
+        .or_else(|| profile.password.clone())
+        .ok_or(LdapexError::InvalidCredentials)?;
 
     let options = ConnectOptions {
         url: profile.url.clone(),
@@ -285,11 +264,16 @@ pub async fn profile_connect(
     let client = LdapClient::connect(options).await?;
     client.simple_bind(&profile.bind_dn, &password).await?;
 
-    if input.remember {
-        state
-            .profiles
-            .set_password(&profile.id, &password)
-            .map_err(profile_err)?;
+    if input.remember
+        && input
+            .password
+            .as_deref()
+            .filter(|s| !s.is_empty())
+            .is_some()
+    {
+        profile.password = Some(password);
+        let stored = state.profiles.save(profile.clone()).map_err(profile_err)?;
+        profile = stored;
     }
 
     *state.session.lock().await = Some(client);

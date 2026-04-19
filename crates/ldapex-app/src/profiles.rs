@@ -1,9 +1,10 @@
-//! Profile persistence: TOML file on disk + OS keyring for passwords.
+//! Profile persistence: a single TOML file at `~/.ldapex/profiles.toml`.
 //!
-//! The on-disk file lives next to the rest of the app's config so the
-//! user can back it up / diff it with a text tool. Passwords are
-//! **never** written to it — they are held in the OS keyring under
-//! service name `LDAPEX_SERVICE` with the profile id as account.
+//! **Security note.** The file contains bind passwords in plain text
+//! (the user explicitly opted for a portable, self-contained layout
+//! over the OS keyring). We compensate by chmod-ing the file to `0600`
+//! on Unix so only the owner can read it. On Windows, NTFS ACLs
+//! already restrict the user's profile folder to that user.
 
 use std::{
     fs,
@@ -15,14 +16,17 @@ use std::{
 use ldapex_core::{ConnectionProfile, ProfileStore, PROFILE_SCHEMA_VERSION};
 use thiserror::Error;
 
-/// Service identifier for the OS keyring. Keep stable — renaming it
-/// orphans every stored password.
-pub const LDAPEX_SERVICE: &str = "ldapex";
+/// Directory name, relative to the user's home, that hosts every
+/// Ldapex config file.
+pub const LDAPEX_DIR: &str = ".ldapex";
+
+/// File inside [`LDAPEX_DIR`] that holds the profile list.
+pub const PROFILES_FILE: &str = "profiles.toml";
 
 #[derive(Debug, Error)]
 pub enum ProfileError {
-    #[error("config directory unavailable on this platform")]
-    NoConfigDir,
+    #[error("home directory unavailable on this platform")]
+    NoHomeDir,
     #[error("I/O: {0}")]
     Io(#[from] io::Error),
     #[error("TOML parse: {0}")]
@@ -31,8 +35,6 @@ pub enum ProfileError {
     Serialize(#[from] toml::ser::Error),
     #[error("JSON: {0}")]
     Json(#[from] serde_json::Error),
-    #[error("keyring: {0}")]
-    Keyring(#[from] keyring::Error),
     #[error("profile not found: {0}")]
     NotFound(String),
 }
@@ -40,19 +42,20 @@ pub enum ProfileError {
 pub type Result<T> = std::result::Result<T, ProfileError>;
 
 /// Owns the on-disk profile store behind a lock. All public methods
-/// reload from disk on read and rewrite on write so concurrent CLI
-/// edits stay consistent.
+/// reload from disk on read and rewrite on write so concurrent edits
+/// stay consistent.
 pub struct ProfileManager {
     path: PathBuf,
     lock: Mutex<()>,
 }
 
 impl ProfileManager {
-    /// Initialise the manager, creating the config directory if needed.
+    /// Initialise the manager, creating `~/.ldapex/` if needed.
     pub fn new() -> Result<Self> {
         let path = config_file()?;
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)?;
+            restrict_dir_permissions(parent)?;
         }
         Ok(Self {
             path,
@@ -83,19 +86,14 @@ impl ProfileManager {
         Ok(profile)
     }
 
-    /// Remove a profile **and** its stored password if any.
+    /// Remove a profile.
     pub fn delete(&self, id: &str) -> Result<()> {
         let _g = self.lock.lock().unwrap();
         let mut store = self.load_unlocked()?;
         if store.remove(id).is_none() {
             return Err(ProfileError::NotFound(id.into()));
         }
-        self.persist_unlocked(&store)?;
-        // Best-effort keyring cleanup — a missing entry is fine.
-        if let Ok(entry) = keyring::Entry::new(LDAPEX_SERVICE, id) {
-            let _ = entry.delete_credential();
-        }
-        Ok(())
+        self.persist_unlocked(&store)
     }
 
     /// Export every profile to a JSON document (used by "Export…").
@@ -120,32 +118,6 @@ impl ProfileManager {
         Ok(store.profiles)
     }
 
-    /// Retrieve the saved password for a profile, if any.
-    pub fn get_password(&self, id: &str) -> Result<Option<String>> {
-        let entry = keyring::Entry::new(LDAPEX_SERVICE, id)?;
-        match entry.get_password() {
-            Ok(pw) => Ok(Some(pw)),
-            Err(keyring::Error::NoEntry) => Ok(None),
-            Err(e) => Err(e.into()),
-        }
-    }
-
-    /// Write (or replace) the password for a profile in the OS keyring.
-    pub fn set_password(&self, id: &str, password: &str) -> Result<()> {
-        let entry = keyring::Entry::new(LDAPEX_SERVICE, id)?;
-        entry.set_password(password)?;
-        Ok(())
-    }
-
-    /// Remove a stored password (no error if absent).
-    pub fn clear_password(&self, id: &str) -> Result<()> {
-        let entry = keyring::Entry::new(LDAPEX_SERVICE, id)?;
-        match entry.delete_credential() {
-            Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
-            Err(e) => Err(e.into()),
-        }
-    }
-
     fn load_unlocked(&self) -> Result<ProfileStore> {
         match fs::read_to_string(&self.path) {
             Ok(text) => {
@@ -160,30 +132,57 @@ impl ProfileManager {
 
     fn persist_unlocked(&self, store: &ProfileStore) -> Result<()> {
         let text = toml::to_string_pretty(store)?;
-        write_atomic(&self.path, text.as_bytes())
+        write_atomic_restricted(&self.path, text.as_bytes())
     }
 }
 
 /// Write `content` to `path` via a sibling temp file + rename so a
-/// crash mid-write leaves the previous file intact.
-fn write_atomic(path: &Path, content: &[u8]) -> Result<()> {
+/// crash mid-write leaves the previous file intact. On Unix we set
+/// `0600` on the temp file **before** renaming, so the final file is
+/// never world-readable even for a short window.
+fn write_atomic_restricted(path: &Path, content: &[u8]) -> Result<()> {
     let dir = path
         .parent()
         .ok_or_else(|| io::Error::new(ErrorKind::Other, "profile path has no parent directory"))?;
-    let tmp = dir.join(format!(".{}.tmp", random_suffix()));
+    let tmp = dir.join(format!(".{}.tmp", uuid::Uuid::new_v4().as_simple()));
     fs::write(&tmp, content)?;
+    restrict_file_permissions(&tmp)?;
     fs::rename(&tmp, path)?;
     Ok(())
 }
 
-fn random_suffix() -> String {
-    uuid::Uuid::new_v4().as_simple().to_string()
+#[cfg(unix)]
+fn restrict_file_permissions(path: &Path) -> Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+    let mut perms = fs::metadata(path)?.permissions();
+    perms.set_mode(0o600);
+    fs::set_permissions(path, perms)?;
+    Ok(())
 }
 
-/// Canonical config file path: `<config>/ldapex/profiles.toml`.
+#[cfg(unix)]
+fn restrict_dir_permissions(path: &Path) -> Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+    let mut perms = fs::metadata(path)?.permissions();
+    perms.set_mode(0o700);
+    fs::set_permissions(path, perms)?;
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn restrict_file_permissions(_path: &Path) -> Result<()> {
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn restrict_dir_permissions(_path: &Path) -> Result<()> {
+    Ok(())
+}
+
+/// Canonical config file path: `$HOME/.ldapex/profiles.toml`.
 pub fn config_file() -> Result<PathBuf> {
-    let base = dirs::config_dir().ok_or(ProfileError::NoConfigDir)?;
-    Ok(base.join("ldapex").join("profiles.toml"))
+    let home = dirs::home_dir().ok_or(ProfileError::NoHomeDir)?;
+    Ok(home.join(LDAPEX_DIR).join(PROFILES_FILE))
 }
 
 #[cfg(test)]
@@ -228,12 +227,25 @@ mod tests {
             .expect("save");
 
         let json = r#"{
-            "version": 1,
+            "version": 2,
             "profiles": [
-                { "id": "b", "name": "B", "url": "ldap://b", "bind_dn": "", "base_dn": "", "tls": "none", "save_password": false }
+                { "id": "b", "name": "B", "url": "ldap://b", "bind_dn": "", "base_dn": "", "tls": "none" }
             ]
         }"#;
         let merged = mgr.import_json(json).expect("import");
         assert_eq!(merged.len(), 2);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn saved_file_is_not_world_readable() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempdir().expect("tempdir");
+        let path = dir.path().join("profiles.toml");
+        let mgr = ProfileManager::with_path(path.clone());
+        mgr.save(ConnectionProfile::new_with_id("a", "A", "ldap://a"))
+            .expect("save");
+        let perms = fs::metadata(&path).expect("stat").permissions();
+        assert_eq!(perms.mode() & 0o777, 0o600);
     }
 }
