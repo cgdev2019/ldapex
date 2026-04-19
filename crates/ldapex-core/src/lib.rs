@@ -6,11 +6,15 @@
 
 pub mod client;
 pub mod error;
+pub mod schema;
 pub mod types;
 
 pub use client::{ConnectOptions, LdapClient, TlsMode};
 pub use error::{LdapexError, Result};
-pub use types::{Attribute, AttributeValue, DnLabel, Entry};
+pub use types::{
+    Attribute, AttributeValue, DnLabel, Entry, Modification, ObjectClassDef, ObjectClassKind,
+    SchemaInfo, SearchParams, SearchScope,
+};
 
 /// Semantic version of the core crate.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

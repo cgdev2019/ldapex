@@ -1,5 +1,6 @@
 use ldapex_core::{
-    ConnectOptions, DnLabel, Entry, LdapClient, LdapexError, Result as CoreResult, TlsMode,
+    Attribute, ConnectOptions, DnLabel, Entry, LdapClient, LdapexError, Modification,
+    Result as CoreResult, SchemaInfo, SearchParams, TlsMode,
 };
 use serde::{Deserialize, Serialize};
 use tauri::State;
@@ -31,8 +32,7 @@ pub fn ping() -> PingResponse {
     }
 }
 
-/// Input for the `ldap_connect` command. Mirrors
-/// `frontend/src/lib/bridge.ts:ConnectInput`.
+/// Input for the `ldap_connect` command.
 #[derive(Debug, Deserialize)]
 pub struct ConnectInput {
     pub url: String,
@@ -82,4 +82,78 @@ pub async fn ldap_read_entry(state: State<'_, AppState>, dn: String) -> CoreResu
     let guard = state.session.lock().await;
     let client = guard.as_ref().ok_or(LdapexError::NotConnected)?;
     client.read_entry(&dn).await
+}
+
+#[tauri::command]
+pub async fn ldap_search(
+    state: State<'_, AppState>,
+    params: SearchParams,
+) -> CoreResult<Vec<Entry>> {
+    let guard = state.session.lock().await;
+    let client = guard.as_ref().ok_or(LdapexError::NotConnected)?;
+    client.search(params).await
+}
+
+#[tauri::command]
+pub async fn ldap_modify(
+    state: State<'_, AppState>,
+    dn: String,
+    mods: Vec<Modification>,
+) -> CoreResult<()> {
+    let guard = state.session.lock().await;
+    let client = guard.as_ref().ok_or(LdapexError::NotConnected)?;
+    client.modify(&dn, &mods).await
+}
+
+#[tauri::command]
+pub async fn ldap_add(
+    state: State<'_, AppState>,
+    dn: String,
+    attributes: Vec<Attribute>,
+) -> CoreResult<()> {
+    let guard = state.session.lock().await;
+    let client = guard.as_ref().ok_or(LdapexError::NotConnected)?;
+    client.add(&dn, &attributes).await
+}
+
+#[tauri::command]
+pub async fn ldap_delete(state: State<'_, AppState>, dn: String) -> CoreResult<()> {
+    let guard = state.session.lock().await;
+    let client = guard.as_ref().ok_or(LdapexError::NotConnected)?;
+    client.delete(&dn).await
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RenameInput {
+    pub dn: String,
+    pub new_rdn: String,
+    #[serde(default)]
+    pub new_parent: Option<String>,
+    #[serde(default = "default_true")]
+    pub delete_old_rdn: bool,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+#[tauri::command]
+pub async fn ldap_rename(state: State<'_, AppState>, input: RenameInput) -> CoreResult<()> {
+    let guard = state.session.lock().await;
+    let client = guard.as_ref().ok_or(LdapexError::NotConnected)?;
+    client
+        .rename(
+            &input.dn,
+            &input.new_rdn,
+            input.new_parent.as_deref(),
+            input.delete_old_rdn,
+        )
+        .await
+}
+
+#[tauri::command]
+pub async fn ldap_fetch_schema(state: State<'_, AppState>) -> CoreResult<SchemaInfo> {
+    let guard = state.session.lock().await;
+    let client = guard.as_ref().ok_or(LdapexError::NotConnected)?;
+    client.fetch_schema().await
 }

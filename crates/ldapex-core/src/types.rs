@@ -1,6 +1,90 @@
 use base64::Engine as _;
 use serde::{Deserialize, Serialize};
 
+/// Search scope, mirrors the LDAP protocol values of RFC 4511 §4.5.1.2.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum SearchScope {
+    Base,
+    OneLevel,
+    Subtree,
+}
+
+impl From<SearchScope> for ldap3::Scope {
+    fn from(s: SearchScope) -> Self {
+        match s {
+            SearchScope::Base => ldap3::Scope::Base,
+            SearchScope::OneLevel => ldap3::Scope::OneLevel,
+            SearchScope::Subtree => ldap3::Scope::Subtree,
+        }
+    }
+}
+
+/// Parameters for [`crate::LdapClient::search`]. Empty `attributes`
+/// asks the server for all user attributes (`*`).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SearchParams {
+    pub base_dn: String,
+    pub scope: SearchScope,
+    pub filter: String,
+    #[serde(default)]
+    pub attributes: Vec<String>,
+    /// Server-side size limit. `None` lets the server apply its default.
+    #[serde(default)]
+    pub size_limit: Option<u32>,
+}
+
+/// Single modification sent with [`crate::LdapClient::modify`].
+///
+/// `Delete { values: None }` removes the entire attribute; providing
+/// `values` deletes only the listed ones.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(tag = "op", rename_all = "snake_case")]
+pub enum Modification {
+    Add {
+        attribute: String,
+        values: Vec<String>,
+    },
+    Replace {
+        attribute: String,
+        values: Vec<String>,
+    },
+    Delete {
+        attribute: String,
+        #[serde(default)]
+        values: Option<Vec<String>>,
+    },
+}
+
+/// Structured schema summary returned by
+/// [`crate::LdapClient::fetch_schema`].
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SchemaInfo {
+    pub subschema_dn: String,
+    pub attribute_names: Vec<String>,
+    pub object_classes: Vec<ObjectClassDef>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ObjectClassKind {
+    Abstract,
+    Structural,
+    Auxiliary,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ObjectClassDef {
+    pub name: String,
+    pub kind: ObjectClassKind,
+    #[serde(default)]
+    pub sup: Vec<String>,
+    #[serde(default)]
+    pub must: Vec<String>,
+    #[serde(default)]
+    pub may: Vec<String>,
+}
+
 /// A single LDAP entry returned to the frontend.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Entry {

@@ -20,6 +20,12 @@ pub fn run() {
             commands::ldap_disconnect,
             commands::ldap_list_children,
             commands::ldap_read_entry,
+            commands::ldap_search,
+            commands::ldap_modify,
+            commands::ldap_add,
+            commands::ldap_delete,
+            commands::ldap_rename,
+            commands::ldap_fetch_schema,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Ldapex");

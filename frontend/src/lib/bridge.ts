@@ -122,3 +122,69 @@ export async function ldapListChildren(baseDn: string): Promise<DnLabel[]> {
 export async function ldapReadEntry(dn: string): Promise<Entry> {
   return invoke<Entry>('ldap_read_entry', { dn });
 }
+
+// ---------- Phase 2 types ----------
+
+export type SearchScope = 'base' | 'one_level' | 'subtree';
+
+export interface SearchParams {
+  base_dn: string;
+  scope: SearchScope;
+  filter: string;
+  attributes?: string[];
+  size_limit?: number | null;
+}
+
+export type Modification =
+  | { op: 'add'; attribute: string; values: string[] }
+  | { op: 'replace'; attribute: string; values: string[] }
+  | { op: 'delete'; attribute: string; values?: string[] | null };
+
+export type ObjectClassKind = 'abstract' | 'structural' | 'auxiliary';
+
+export interface ObjectClassDef {
+  name: string;
+  kind: ObjectClassKind;
+  sup: string[];
+  must: string[];
+  may: string[];
+}
+
+export interface SchemaInfo {
+  subschema_dn: string;
+  attribute_names: string[];
+  object_classes: ObjectClassDef[];
+}
+
+// ---------- Phase 2 commands ----------
+
+export async function ldapSearch(params: SearchParams): Promise<Entry[]> {
+  return invoke<Entry[]>('ldap_search', { params });
+}
+
+export async function ldapModify(dn: string, mods: Modification[]): Promise<void> {
+  await invoke('ldap_modify', { dn, mods });
+}
+
+export async function ldapAdd(dn: string, attributes: Attribute[]): Promise<void> {
+  await invoke('ldap_add', { dn, attributes });
+}
+
+export async function ldapDelete(dn: string): Promise<void> {
+  await invoke('ldap_delete', { dn });
+}
+
+export interface RenameInput {
+  dn: string;
+  new_rdn: string;
+  new_parent?: string | null;
+  delete_old_rdn?: boolean;
+}
+
+export async function ldapRename(input: RenameInput): Promise<void> {
+  await invoke('ldap_rename', { input });
+}
+
+export async function ldapFetchSchema(): Promise<SchemaInfo> {
+  return invoke<SchemaInfo>('ldap_fetch_schema');
+}
