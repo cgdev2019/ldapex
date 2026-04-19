@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { locale } from 'svelte-i18n';
+  import { _, locale } from 'svelte-i18n';
   import CreateEntryDialog from '$lib/components/CreateEntryDialog.svelte';
   import DitTree from '$lib/components/DitTree.svelte';
   import EntryPanel from '$lib/components/EntryPanel.svelte';
@@ -62,21 +62,21 @@
   </div>
 {:else}
   <header class="topbar">
-    <strong>{session.bindDn ?? '(anonyme)'}</strong>
+    <strong>{session.bindDn || $_('common.anonymous')}</strong>
     <span class="url">@ {session.url}</span>
-    <button type="button" onclick={openCreate} title="Nouvelle entrée (Ctrl+N)">
-      + Entrée
+    <button type="button" onclick={openCreate} title={$_('nav.new_entry_tooltip')}>
+      {$_('nav.new_entry')}
     </button>
     <select
       class="lang"
-      aria-label="Language"
+      aria-label={$_('language.label')}
       value={$locale?.startsWith('fr') ? 'fr' : 'en'}
       onchange={(e) => setLocale((e.currentTarget as HTMLSelectElement).value as SupportedLocale)}
     >
       <option value="en">EN</option>
       <option value="fr">FR</option>
     </select>
-    <button type="button" onclick={onDisconnect}>Déconnexion</button>
+    <button type="button" onclick={onDisconnect}>{$_('nav.disconnect')}</button>
   </header>
 
   <div class="layout">
@@ -89,7 +89,7 @@
           class:active={sidePanel === 'browse'}
           onclick={() => (sidePanel = 'browse')}
         >
-          Arbre
+          {$_('tabs.tree')}
         </button>
         <button
           type="button"
@@ -97,9 +97,9 @@
           aria-selected={sidePanel === 'search'}
           class:active={sidePanel === 'search'}
           onclick={() => (sidePanel = 'search')}
-          title="Recherche (Ctrl+F)"
+          title={$_('tabs.search_tooltip')}
         >
-          Recherche
+          {$_('tabs.search')}
         </button>
       </nav>
 

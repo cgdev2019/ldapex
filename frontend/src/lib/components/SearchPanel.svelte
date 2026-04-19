@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
+  import { _ } from 'svelte-i18n';
   import { formatError, ldapSearch, type Entry, type SearchScope } from '$lib/bridge';
   import { session } from '$lib/session.svelte';
 
@@ -67,7 +69,7 @@
 
   function clearHistory() {
     if (history.length === 0) return;
-    if (!window.confirm('Effacer l\u2019historique des filtres pour ce profil ?')) return;
+    if (!window.confirm(get(_)('search.clear_history_confirm'))) return;
     history = [];
     try {
       localStorage.removeItem(historyKey());
@@ -109,13 +111,13 @@
 
 <form onsubmit={run}>
   <label>
-    <span>Base DN</span>
+    <span>{$_('search.base_dn')}</span>
     <input type="text" bind:value={searchBase} required />
   </label>
 
   <div class="row">
     <label>
-      <span>Scope</span>
+      <span>{$_('search.scope')}</span>
       <select bind:value={scope}>
         <option value="base">base</option>
         <option value="one_level">onelevel</option>
@@ -124,13 +126,13 @@
     </label>
 
     <label>
-      <span>Limite</span>
+      <span>{$_('search.size_limit')}</span>
       <input type="number" min="0" bind:value={sizeLimit} />
     </label>
   </div>
 
   <label>
-    <span>Filtre (RFC 4515)</span>
+    <span>{$_('search.filter')}</span>
     <input
       type="text"
       bind:value={filter}
@@ -147,16 +149,16 @@
 
   <div class="actions">
     <button type="submit" disabled={loading}>
-      {loading ? 'Recherche…' : 'Rechercher'}
+      {loading ? $_('search.searching') : $_('search.submit')}
     </button>
     {#if history.length > 0}
       <button
         type="button"
         class="tertiary"
         onclick={clearHistory}
-        title="Effacer l'historique"
+        title={$_('search.clear_history_tooltip')}
       >
-        Effacer historique ({history.length})
+        {$_('search.clear_history', { values: { count: history.length } })}
       </button>
     {/if}
   </div>
@@ -176,7 +178,7 @@
     {/each}
   </ul>
 {:else if !loading}
-  <p class="status muted">Aucun résultat (lance une recherche).</p>
+  <p class="status muted">{$_('search.no_results')}</p>
 {/if}
 
 <style>

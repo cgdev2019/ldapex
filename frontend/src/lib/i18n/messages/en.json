@@ -113,5 +113,27 @@
     "label": "Language",
     "en": "English",
     "fr": "Français"
+  },
+  "nav": {
+    "new_entry": "+ Entry",
+    "new_entry_tooltip": "New entry (Ctrl+N)",
+    "disconnect": "Disconnect"
+  },
+  "tabs": {
+    "tree": "Tree",
+    "search": "Search",
+    "search_tooltip": "Search (Ctrl+F)"
+  },
+  "search": {
+    "base_dn": "Base DN",
+    "scope": "Scope",
+    "size_limit": "Limit",
+    "filter": "Filter (RFC 4515)",
+    "submit": "Search",
+    "searching": "Searching…",
+    "clear_history": "Clear history ({count})",
+    "clear_history_tooltip": "Clear the filter history",
+    "clear_history_confirm": "Clear the filter history for this profile?",
+    "no_results": "No results yet (run a search)."
   }
 }
