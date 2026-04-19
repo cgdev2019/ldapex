@@ -11,6 +11,11 @@ export interface ShortcutCallbacks {
   onFocusSearch?: () => void;
   onNewEntry?: () => void;
   onRefresh?: () => void;
+  /** Ctrl/Cmd+S. Ignored while the user is typing in a non-edit-mode
+   *  field (we still fire it inside the entry editor on purpose). */
+  onSave?: () => void;
+  /** Delete key. Only fires when no input has focus. */
+  onDelete?: () => void;
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -47,6 +52,22 @@ export function registerShortcuts(callbacks: ShortcutCallbacks): () => void {
     if (mod && key === 'n' && callbacks.onNewEntry && !isEditableTarget(event.target)) {
       event.preventDefault();
       callbacks.onNewEntry();
+      return;
+    }
+
+    // Ctrl/Cmd+S → save the current entry edits. Always intercept
+    // (we never want the browser's default "save page" dialog).
+    if (mod && key === 's' && callbacks.onSave) {
+      event.preventDefault();
+      callbacks.onSave();
+      return;
+    }
+
+    // Delete → delete the currently selected entry. Skip when an input
+    // has focus so typing stays normal.
+    if (event.key === 'Delete' && !isEditableTarget(event.target) && callbacks.onDelete) {
+      event.preventDefault();
+      callbacks.onDelete();
     }
   }
 

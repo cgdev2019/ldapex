@@ -24,7 +24,12 @@
       onNewEntry: openCreate,
       onRefresh: () => {
         treeRefreshKey += 1;
-      }
+      },
+      // Save and Delete are routed to EntryPanel via window events
+      // so the component stays authoritative on "am I editing?" and
+      // "which DN is selected?".
+      onSave: () => window.dispatchEvent(new Event('ldapex:save')),
+      onDelete: () => window.dispatchEvent(new Event('ldapex:delete'))
     });
   });
 

@@ -41,6 +41,24 @@
     }
   });
 
+  // Keyboard shortcuts are dispatched as window CustomEvents by
+  // `+page.svelte` so this component stays the authority on editing
+  // state and the currently selected DN.
+  $effect(() => {
+    const onSave = () => {
+      if (editing && !saving) void save();
+    };
+    const onDelete = () => {
+      if (dn && !editing && !saving) void confirmDelete();
+    };
+    window.addEventListener('ldapex:save', onSave);
+    window.addEventListener('ldapex:delete', onDelete);
+    return () => {
+      window.removeEventListener('ldapex:save', onSave);
+      window.removeEventListener('ldapex:delete', onDelete);
+    };
+  });
+
   function resetAll() {
     entry = null;
     error = null;
