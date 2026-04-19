@@ -13,6 +13,7 @@
   } from '$lib/bridge';
   import { bookmarks, recents } from '$lib/bookmarks.svelte';
   import { copyToClipboard } from '$lib/clipboard';
+  import { notes } from '$lib/notes.svelte';
   import Icon from './Icon.svelte';
 
   interface Props {
@@ -90,6 +91,30 @@
   }
 
   let exporting = $state(false);
+  let noteOpen = $state(false);
+  let noteDraft = $state('');
+  let noteTimer: ReturnType<typeof setTimeout> | null = null;
+
+  $effect(() => {
+    if (dn) {
+      notes.reload();
+      noteDraft = notes.load(dn);
+      noteOpen = noteDraft.length > 0;
+    } else {
+      noteDraft = '';
+      noteOpen = false;
+    }
+  });
+
+  function queueSaveNote() {
+    if (!dn) return;
+    if (noteTimer) clearTimeout(noteTimer);
+    const target = dn;
+    const text = noteDraft;
+    noteTimer = setTimeout(() => {
+      notes.save(target, text);
+    }, 400);
+  }
 
   async function exportLdif() {
     if (!dn) return;
@@ -667,6 +692,52 @@
 
   .add-attr input {
     flex: 1;
+  }
+
+  /* -------- notes -------- */
+
+  .notes {
+    margin: 0.25rem 0 0.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .notes.open {
+    background: var(--color-surface-2);
+  }
+
+  .notes-head {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 0.3rem 0.5rem;
+    border: none;
+    background: transparent;
+    color: var(--color-text-muted);
+    font-size: 0.72rem;
+    border-radius: var(--radius-md);
+  }
+
+  .notes-head .dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--color-warning);
+    margin-left: 0.2rem;
+  }
+
+  .notes-body {
+    border: none;
+    border-top: 1px solid var(--color-border);
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+    padding: 0.5rem 0.6rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    resize: vertical;
+    background: transparent;
+    min-height: 3.2rem;
   }
 
   /* -------- empty state -------- */

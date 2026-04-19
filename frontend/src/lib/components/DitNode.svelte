@@ -2,6 +2,7 @@
   import { _ } from 'svelte-i18n';
   import { formatError, ldapListChildren, type DnLabel } from '$lib/bridge';
   import { selection } from '$lib/selection.svelte';
+  import { notes } from '$lib/notes.svelte';
   import type { IconName } from './Icon.svelte';
   import Icon from './Icon.svelte';
   import DitNode from './DitNode.svelte';
@@ -77,6 +78,9 @@
         <Icon name={nodeIcon()} size={14} />
       </span>
       <span class="text">{node.label}</span>
+      {#if notes.has(node.dn)}
+        <span class="note-dot" aria-label="Note locale"></span>
+      {/if}
       {#if selection.has(node.dn)}
         <span class="sel-mark" aria-hidden="true">
           <Icon name="check" size={11} />
@@ -187,6 +191,15 @@
     display: inline-grid;
     place-items: center;
     flex-shrink: 0;
+  }
+
+  .note-dot {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    background: var(--color-warning);
+    flex-shrink: 0;
+    margin-left: auto;
   }
 
   .text {
