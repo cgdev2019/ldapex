@@ -191,6 +191,8 @@
     saving = true;
     try {
       await ldapAdd(dn, attributes);
+      const { history } = await import('$lib/history.svelte');
+      history.recordAdd(dn, attributes);
       oncreated?.(dn);
       onclose();
     } catch (err) {

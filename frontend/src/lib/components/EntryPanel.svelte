@@ -13,6 +13,7 @@
   } from '$lib/bridge';
   import { bookmarks, recents } from '$lib/bookmarks.svelte';
   import { copyToClipboard } from '$lib/clipboard';
+  import { history } from '$lib/history.svelte';
   import { notes } from '$lib/notes.svelte';
   import Icon from './Icon.svelte';
 
@@ -181,8 +182,11 @@
     }
     saving = true;
     error = null;
+    const before = cloneMap(originalText);
+    const after = cloneMap(draftText);
     try {
       await ldapModify(dn, mods);
+      history.recordModify(dn, before, after, mods);
       onentrychanged?.({ dn, kind: 'modified' });
       await load(dn);
     } catch (err) {
@@ -229,8 +233,10 @@
     if (!yes) return;
     saving = true;
     error = null;
+    const snapshot = entry; // capture before the write wipes state
     try {
       await ldapDelete(dn);
+      if (snapshot) history.recordDelete(dn, snapshot);
       onentrychanged?.({ dn, kind: 'deleted' });
       resetAll();
     } catch (err) {

@@ -29,6 +29,7 @@
   let csvImportUnder = $state<string | null | false>(false);
   let ldifOpen = $state(false);
   let serverInfoOpen = $state(false);
+  let historyOpen = $state(false);
   let treeRefreshKey = $state(0);
   let paletteOpen = $state(false);
 
@@ -163,6 +164,15 @@
       >
         <Icon name="command" size={14} />
         <kbd>Ctrl K</kbd>
+      </button>
+      <button
+        type="button"
+        class="ghost"
+        onclick={() => (historyOpen = true)}
+        title="Historique — Undo/Redo"
+      >
+        <Icon name="clock" size={14} />
+        <span class="hide-sm">Historique</span>
       </button>
       <button
         type="button"
@@ -303,6 +313,13 @@
 
   {#if serverInfoOpen}
     <ServerInfoDialog onclose={() => (serverInfoOpen = false)} />
+  {/if}
+
+  {#if historyOpen}
+    <HistoryDialog
+      onclose={() => (historyOpen = false)}
+      onchanged={() => (treeRefreshKey += 1)}
+    />
   {/if}
 
   {#if paletteOpen}
