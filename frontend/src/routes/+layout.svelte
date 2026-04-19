@@ -6,8 +6,9 @@
   // Initialise the locale store as early as possible so every component
   // that uses `$_` already sees a loaded catalogue on first render.
   setupI18n();
-  // Apply the persisted theme override (if any) before the first paint
-  // so users who picked dark/light don't get a brief OS-default flash.
+  // Apply the persisted theme + density overrides before the first
+  // paint so users who picked dark/light/compact don't get a brief
+  // OS-default flash.
   theme.init();
 
   let { children } = $props();

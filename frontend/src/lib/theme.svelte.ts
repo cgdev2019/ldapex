@@ -9,8 +9,10 @@
 import { browser } from '$app/environment';
 
 export type ThemeMode = 'auto' | 'light' | 'dark';
+export type Density = 'compact' | 'normal' | 'comfortable';
 
 const KEY = 'ldapex.theme';
+const DENSITY_KEY = 'ldapex.density';
 
 function readStored(): ThemeMode {
   if (!browser) return 'auto';
@@ -25,11 +27,26 @@ function applyToDom(mode: ThemeMode): void {
   else root.setAttribute('data-theme', mode);
 }
 
+function readDensity(): Density {
+  if (!browser) return 'normal';
+  const v = window.localStorage.getItem(DENSITY_KEY);
+  return v === 'compact' || v === 'comfortable' ? v : 'normal';
+}
+
+function applyDensity(d: Density): void {
+  if (!browser) return;
+  const root = document.documentElement;
+  if (d === 'normal') root.removeAttribute('data-density');
+  else root.setAttribute('data-density', d);
+}
+
 class ThemeStore {
   mode = $state<ThemeMode>(readStored());
+  density = $state<Density>(readDensity());
 
   init(): void {
     applyToDom(this.mode);
+    applyDensity(this.density);
   }
 
   set(next: ThemeMode): void {
@@ -39,6 +56,15 @@ class ThemeStore {
       else window.localStorage.setItem(KEY, next);
     }
     applyToDom(next);
+  }
+
+  setDensity(next: Density): void {
+    this.density = next;
+    if (browser) {
+      if (next === 'normal') window.localStorage.removeItem(DENSITY_KEY);
+      else window.localStorage.setItem(DENSITY_KEY, next);
+    }
+    applyDensity(next);
   }
 }
 

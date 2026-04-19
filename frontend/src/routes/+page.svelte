@@ -7,6 +7,8 @@
   } from '$lib/components/CommandPalette.svelte';
   import CreateEntryDialog from '$lib/components/CreateEntryDialog.svelte';
   import CsvImportDialog from '$lib/components/CsvImportDialog.svelte';
+  import DensityToggle from '$lib/components/DensityToggle.svelte';
+  import HistoryDialog from '$lib/components/HistoryDialog.svelte';
   import LdifWorkbench from '$lib/components/LdifWorkbench.svelte';
   import DitTree from '$lib/components/DitTree.svelte';
   import EntryPanel from '$lib/components/EntryPanel.svelte';
@@ -154,6 +156,7 @@
     </button>
 
     <div class="topbar-actions">
+      <DensityToggle />
       <ThemeToggle />
       <button
         type="button"
