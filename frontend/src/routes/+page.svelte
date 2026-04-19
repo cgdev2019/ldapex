@@ -15,6 +15,7 @@
   import ProfilePicker from '$lib/components/ProfilePicker.svelte';
   import SchemaPanel from '$lib/components/SchemaPanel.svelte';
   import SearchPanel from '$lib/components/SearchPanel.svelte';
+  import ServerInfoDialog from '$lib/components/ServerInfoDialog.svelte';
   import ThemeToggle from '$lib/components/ThemeToggle.svelte';
   import { selection } from '$lib/selection.svelte';
   import { bookmarks, recents } from '$lib/bookmarks.svelte';
@@ -27,6 +28,7 @@
   let creatingUnder = $state<string | null>(null);
   let csvImportUnder = $state<string | null | false>(false);
   let ldifOpen = $state(false);
+  let serverInfoOpen = $state(false);
   let treeRefreshKey = $state(0);
   let paletteOpen = $state(false);
 
@@ -138,12 +140,17 @@
       <span class="brand-name">Ldapex</span>
     </div>
 
-    <div class="session-info" title={session.url ?? ''}>
+    <button
+      class="session-info"
+      type="button"
+      onclick={() => (serverInfoOpen = true)}
+      title="Info serveur (rootDSE)"
+    >
       <Icon name="user" size={14} />
       <span class="dn">{session.bindDn || $_('common.anonymous')}</span>
       <span class="sep">@</span>
       <span class="url">{session.url}</span>
-    </div>
+    </button>
 
     <div class="topbar-actions">
       <ThemeToggle />
@@ -294,6 +301,10 @@
     />
   {/if}
 
+  {#if serverInfoOpen}
+    <ServerInfoDialog onclose={() => (serverInfoOpen = false)} />
+  {/if}
+
   {#if paletteOpen}
     <CommandPalette
       onclose={() => (paletteOpen = false)}
@@ -381,6 +392,17 @@
     color: var(--color-text-muted);
     min-width: 0;
     overflow: hidden;
+    background: transparent;
+    border: none;
+    padding: 0.25rem 0.4rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    justify-content: flex-start;
+  }
+
+  .session-info:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-text);
   }
 
   .session-info .dn {
