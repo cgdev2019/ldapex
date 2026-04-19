@@ -2,6 +2,8 @@
 /target
 **/*.rs.bk
 Cargo.lock.bak
+# Keep `.cargo/config.toml` tracked; only ignore local overrides
+.cargo/config.local.toml
 
 # Node
 node_modules/

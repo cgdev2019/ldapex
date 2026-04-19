@@ -80,10 +80,27 @@ pre-commit install
 
 ## Build
 
+Tauri v2 embarque le frontend Svelte directement dans le binaire Rust, donc
+chaque OS produit **un seul fichier** côté distribution.
+
 ```bash
 cargo tauri build
-# → artefacts dans crates/ldapex-app/target/release/bundle/
 ```
+
+Artefacts produits dans `target/release/` :
+
+| OS      | Fichier unique                        | Runtime requis                   |
+| ------- | ------------------------------------- | -------------------------------- |
+| Windows | `bundle/nsis/ldapex_*_setup.exe`      | aucune DLL (CRT statique, WebView2 bootstrapper embarqué) |
+| macOS   | `bundle/dmg/Ldapex_*.dmg`             | macOS 11+ (WebKit fourni par l'OS) |
+| Linux   | `bundle/appimage/ldapex_*.AppImage`   | `libwebkit2gtk-4.1` sur la machine cible¹ |
+
+Le binaire brut `target/release/ldapex-app(.exe)` reste disponible et est
+portable tel quel : frontend embarqué, pas de dossier `resources/`.
+
+¹ WebKitGTK ne peut pas être lié statiquement en pratique. Pour un
+AppImage totalement autonome, il faudra bundler WebKit2GTK manuellement
+(tâche éventuelle de Phase 4).
 
 ## Licence
 

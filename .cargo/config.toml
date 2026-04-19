@@ -1,0 +1,9 @@
+# Ship a single self-contained binary on Windows: link the CRT statically
+# so the resulting `ldapex-app.exe` does not need `vcruntime*.dll` on the
+# target machine. Unix targets already produce position-independent
+# self-contained binaries (libc is the only hard runtime dependency).
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+
+[target.aarch64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
