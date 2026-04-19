@@ -196,6 +196,20 @@ export async function ldapFetchSchema(): Promise<SchemaInfo> {
   return invoke<SchemaInfo>('ldap_fetch_schema');
 }
 
+export interface ExportLdifInput {
+  base_dn: string;
+  scope?: SearchScope;
+}
+
+export interface LdifExportResult {
+  ldif: string;
+  entry_count: number;
+}
+
+export async function ldapExportLdif(input: ExportLdifInput): Promise<LdifExportResult> {
+  return invoke<LdifExportResult>('ldap_export_ldif', { input });
+}
+
 // ---------- Phase 3 types ----------
 
 export interface ConnectionProfile {

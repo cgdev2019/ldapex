@@ -40,7 +40,11 @@
     | 'list'
     | 'import'
     | 'export'
-    | 'power';
+    | 'power'
+    | 'star'
+    | 'star-filled'
+    | 'clock'
+    | 'command';
 
   let { name, size = 16, class: klass = '', strokeWidth = 1.75 }: Props = $props();
 
@@ -96,7 +100,15 @@
     export:
       '<path d="M12 21V9"/><path d="m8 13 4-4 4 4"/><path d="M20 21H4a1 1 0 0 1-1-1v-3h18v3a1 1 0 0 1-1 1Z"/>',
     power:
-      '<path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" x2="12" y1="2" y2="12"/>'
+      '<path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" x2="12" y1="2" y2="12"/>',
+    star:
+      '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+    'star-filled':
+      '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="currentColor"/>',
+    clock:
+      '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+    command:
+      '<path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z"/>'
   };
 </script>
 

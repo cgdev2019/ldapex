@@ -122,7 +122,30 @@
   "tabs": {
     "tree": "Arbre",
     "search": "Recherche",
-    "search_tooltip": "Recherche (Ctrl+F)"
+    "search_tooltip": "Recherche (Ctrl+F)",
+    "bookmarks": "Favoris"
+  },
+  "bookmark": {
+    "add": "Ajouter aux favoris",
+    "remove": "Retirer des favoris",
+    "empty": "Aucun favori. Clique sur l'étoile d'une entrée pour la sauvegarder ici.",
+    "recent_head": "Récemment consultées"
+  },
+  "palette": {
+    "open_tooltip": "Palette de commandes (Ctrl+K)",
+    "placeholder": "Aller à un DN, lancer une recherche, exécuter une commande…",
+    "section_actions": "Actions",
+    "section_bookmarks": "Favoris",
+    "section_recent": "Récentes",
+    "section_searches": "Recherches sauvées",
+    "no_results": "Aucun résultat",
+    "hint": "↑↓ pour naviguer, Entrée pour lancer, Échap pour fermer"
+  },
+  "ldif": {
+    "export": "Export LDIF",
+    "export_tooltip": "Copier ce sous-arbre en LDIF",
+    "exported_entry": "{count} entrées copiées en LDIF.",
+    "exporting": "Export…"
   },
   "search": {
     "base_dn": "Base DN",

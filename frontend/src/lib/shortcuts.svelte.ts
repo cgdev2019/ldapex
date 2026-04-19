@@ -16,6 +16,8 @@ export interface ShortcutCallbacks {
   onSave?: () => void;
   /** Delete key. Only fires when no input has focus. */
   onDelete?: () => void;
+  /** Ctrl/Cmd+K. Opens the command palette from anywhere. */
+  onCommandPalette?: () => void;
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -68,6 +70,14 @@ export function registerShortcuts(callbacks: ShortcutCallbacks): () => void {
     if (event.key === 'Delete' && !isEditableTarget(event.target) && callbacks.onDelete) {
       event.preventDefault();
       callbacks.onDelete();
+      return;
+    }
+
+    // Ctrl/Cmd+K → command palette. Intercepted unconditionally so it
+    // works even while typing in a field.
+    if (mod && key === 'k' && callbacks.onCommandPalette) {
+      event.preventDefault();
+      callbacks.onCommandPalette();
     }
   }
 

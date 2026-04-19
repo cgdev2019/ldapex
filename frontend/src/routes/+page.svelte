@@ -1,5 +1,9 @@
 <script lang="ts">
   import { _, locale } from 'svelte-i18n';
+  import BookmarksPanel from '$lib/components/BookmarksPanel.svelte';
+  import CommandPalette, {
+    type AppAction
+  } from '$lib/components/CommandPalette.svelte';
   import CreateEntryDialog from '$lib/components/CreateEntryDialog.svelte';
   import DitTree from '$lib/components/DitTree.svelte';
   import EntryPanel from '$lib/components/EntryPanel.svelte';
@@ -7,14 +11,25 @@
   import LoginForm from '$lib/components/LoginForm.svelte';
   import ProfilePicker from '$lib/components/ProfilePicker.svelte';
   import SearchPanel from '$lib/components/SearchPanel.svelte';
+  import { bookmarks, recents } from '$lib/bookmarks.svelte';
   import { setLocale, type SupportedLocale } from '$lib/i18n';
   import { registerShortcuts } from '$lib/shortcuts.svelte';
   import { session } from '$lib/session.svelte';
 
   let selectedDn = $state<string | null>(null);
-  let sidePanel = $state<'browse' | 'search'>('browse');
+  let sidePanel = $state<'browse' | 'search' | 'bookmarks'>('browse');
   let creatingUnder = $state<string | null>(null);
   let treeRefreshKey = $state(0);
+  let paletteOpen = $state(false);
+
+  $effect(() => {
+    // Refresh per-profile bookmarks + recent DNs whenever the active
+    // session changes (including reconnecting with a different profile).
+    if (session.connected) {
+      bookmarks.reload();
+      recents.reload();
+    }
+  });
 
   $effect(() => {
     if (!session.connected) return;
@@ -27,9 +42,33 @@
         treeRefreshKey += 1;
       },
       onSave: () => window.dispatchEvent(new Event('ldapex:save')),
-      onDelete: () => window.dispatchEvent(new Event('ldapex:delete'))
+      onDelete: () => window.dispatchEvent(new Event('ldapex:delete')),
+      onCommandPalette: () => (paletteOpen = true)
     });
   });
+
+  function runAction(action: AppAction) {
+    switch (action) {
+      case 'new-entry':
+        openCreate();
+        break;
+      case 'switch-tree':
+        sidePanel = 'browse';
+        break;
+      case 'switch-search':
+        sidePanel = 'search';
+        break;
+      case 'switch-bookmarks':
+        sidePanel = 'bookmarks';
+        break;
+      case 'refresh':
+        treeRefreshKey += 1;
+        break;
+      case 'disconnect':
+        void onDisconnect();
+        break;
+    }
+  }
 
   function onselect(dn: string) {
     selectedDn = dn;
@@ -96,6 +135,16 @@
     </div>
 
     <div class="topbar-actions">
+      <button
+        type="button"
+        class="ghost palette-btn"
+        onclick={() => (paletteOpen = true)}
+        title={$_('palette.open_tooltip')}
+        aria-label={$_('palette.open_tooltip')}
+      >
+        <Icon name="command" size={14} />
+        <kbd>Ctrl K</kbd>
+      </button>
       <button type="button" class="primary" onclick={openCreate} title={$_('nav.new_entry_tooltip')}>
         <Icon name="plus" size={15} />
         <span>{$_('nav.new_entry')}</span>
@@ -141,6 +190,19 @@
           <Icon name="search" size={14} />
           <span>{$_('tabs.search')}</span>
         </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={sidePanel === 'bookmarks'}
+          class:active={sidePanel === 'bookmarks'}
+          onclick={() => (sidePanel = 'bookmarks')}
+        >
+          <Icon name="star" size={14} />
+          <span>{$_('tabs.bookmarks')}</span>
+          {#if bookmarks.items.length > 0}
+            <span class="tab-count">{bookmarks.items.length}</span>
+          {/if}
+        </button>
       </nav>
 
       <div class="side-body">
@@ -148,8 +210,10 @@
           {#key treeRefreshKey}
             <DitTree baseDn={session.baseDn} {selectedDn} {onselect} />
           {/key}
-        {:else}
+        {:else if sidePanel === 'search'}
           <SearchPanel baseDn={session.baseDn} {onselect} />
+        {:else}
+          <BookmarksPanel {selectedDn} {onselect} />
         {/if}
       </div>
     </aside>
@@ -164,6 +228,14 @@
       parentDn={creatingUnder}
       onclose={() => (creatingUnder = null)}
       oncreated={onCreated}
+    />
+  {/if}
+
+  {#if paletteOpen}
+    <CommandPalette
+      onclose={() => (paletteOpen = false)}
+      onnavigate={(dn) => (selectedDn = dn)}
+      onaction={runAction}
     />
   {/if}
 {/if}
@@ -276,6 +348,16 @@
     gap: 0.5rem;
   }
 
+  .palette-btn {
+    color: var(--color-text-muted);
+    padding-left: 0.55rem;
+    padding-right: 0.55rem;
+  }
+
+  .palette-btn kbd {
+    font-size: 0.65rem;
+  }
+
   .lang {
     width: auto;
     padding-top: 0.3rem;
@@ -337,6 +419,15 @@
     height: 2px;
     background: var(--color-primary);
     border-radius: 2px;
+  }
+
+  .tab-count {
+    font-size: 0.6rem;
+    padding: 0.02rem 0.35rem;
+    border-radius: var(--radius-pill);
+    background: var(--color-primary);
+    color: white;
+    font-weight: 600;
   }
 
   .side-body {

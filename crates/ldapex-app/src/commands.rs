@@ -1,6 +1,7 @@
 use ldapex_core::{
-    Attribute, ConnectOptions, ConnectionProfile, DnLabel, Entry, LdapClient, LdapexError,
-    Modification, Result as CoreResult, SchemaInfo, SearchParams, TlsMode,
+    entries_to_ldif, Attribute, ConnectOptions, ConnectionProfile, DnLabel, Entry, LdapClient,
+    LdapexError, Modification, Result as CoreResult, SchemaInfo, SearchParams, SearchScope,
+    TlsMode,
 };
 use serde::{Deserialize, Serialize};
 use tauri::State;
@@ -170,6 +171,49 @@ pub async fn ldap_fetch_schema(state: State<'_, AppState>) -> CoreResult<SchemaI
     let guard = state.session.lock().await;
     let client = guard.as_ref().ok_or(LdapexError::NotConnected)?;
     client.fetch_schema().await
+}
+
+/// Export a DN (and optionally its subtree) to a single RFC 2849 LDIF
+/// blob. `scope` defaults to `base`; the UI passes `subtree` for the
+/// "export this branch" flow.
+#[derive(Debug, Deserialize)]
+pub struct ExportLdifInput {
+    pub base_dn: String,
+    #[serde(default = "default_export_scope")]
+    pub scope: SearchScope,
+}
+
+fn default_export_scope() -> SearchScope {
+    SearchScope::Base
+}
+
+#[derive(Debug, Serialize)]
+pub struct LdifExportResult {
+    pub ldif: String,
+    pub entry_count: usize,
+}
+
+#[tauri::command]
+pub async fn ldap_export_ldif(
+    state: State<'_, AppState>,
+    input: ExportLdifInput,
+) -> CoreResult<LdifExportResult> {
+    let guard = state.session.lock().await;
+    let client = guard.as_ref().ok_or(LdapexError::NotConnected)?;
+    let entries = client
+        .search(SearchParams {
+            base_dn: input.base_dn,
+            scope: input.scope,
+            filter: "(objectClass=*)".into(),
+            attributes: vec![],
+            size_limit: None,
+        })
+        .await?;
+    let ldif = entries_to_ldif(&entries);
+    Ok(LdifExportResult {
+        ldif,
+        entry_count: entries.len(),
+    })
 }
 
 // -------------------- Profile commands --------------------

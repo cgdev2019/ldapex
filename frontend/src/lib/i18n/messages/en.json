@@ -122,7 +122,30 @@
   "tabs": {
     "tree": "Tree",
     "search": "Search",
-    "search_tooltip": "Search (Ctrl+F)"
+    "search_tooltip": "Search (Ctrl+F)",
+    "bookmarks": "Bookmarks"
+  },
+  "bookmark": {
+    "add": "Bookmark this entry",
+    "remove": "Remove bookmark",
+    "empty": "No bookmarks yet. Click the star on an entry to save it here.",
+    "recent_head": "Recently visited"
+  },
+  "palette": {
+    "open_tooltip": "Command palette (Ctrl+K)",
+    "placeholder": "Jump to DN, run a saved search, or type a command…",
+    "section_actions": "Actions",
+    "section_bookmarks": "Bookmarks",
+    "section_recent": "Recent",
+    "section_searches": "Saved searches",
+    "no_results": "No matches",
+    "hint": "↑↓ navigate, Enter to run, Esc to close"
+  },
+  "ldif": {
+    "export": "Export LDIF",
+    "export_tooltip": "Copy this subtree as LDIF",
+    "exported_entry": "{count} entries copied as LDIF.",
+    "exporting": "Exporting…"
   },
   "search": {
     "base_dn": "Base DN",

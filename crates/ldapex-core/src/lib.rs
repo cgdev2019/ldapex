@@ -6,6 +6,7 @@
 
 pub mod client;
 pub mod error;
+pub mod ldif;
 pub mod profile;
 pub mod schema;
 pub mod types;

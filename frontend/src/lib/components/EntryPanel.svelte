@@ -4,12 +4,14 @@
   import {
     formatError,
     ldapDelete,
+    ldapExportLdif,
     ldapModify,
     ldapReadEntry,
     type AttributeValue,
     type Entry,
     type Modification
   } from '$lib/bridge';
+  import { bookmarks, recents } from '$lib/bookmarks.svelte';
   import Icon from './Icon.svelte';
 
   interface Props {
@@ -70,11 +72,38 @@
       entry = await ldapReadEntry(target);
       originalText = textMapOf(entry);
       draftText = cloneMap(originalText);
+      recents.visit(target);
     } catch (err) {
       error = formatError(err);
       entry = null;
     } finally {
       loading = false;
+    }
+  }
+
+  const isBookmarked = $derived(dn ? bookmarks.has(dn) : false);
+
+  function toggleBookmark() {
+    if (!dn) return;
+    bookmarks.toggle(dn);
+  }
+
+  let exporting = $state(false);
+
+  async function exportLdif() {
+    if (!dn) return;
+    exporting = true;
+    error = null;
+    try {
+      const res = await ldapExportLdif({ base_dn: dn, scope: 'subtree' });
+      await navigator.clipboard.writeText(res.ldif);
+      window.alert(
+        get(_)('ldif.exported_entry', { values: { count: res.entry_count } })
+      );
+    } catch (err) {
+      error = formatError(err);
+    } finally {
+      exporting = false;
     }
   }
 
@@ -222,6 +251,16 @@
   {:else}
     <header>
       <div class="title">
+        <button
+          type="button"
+          class="ghost icon-only star"
+          class:on={isBookmarked}
+          onclick={toggleBookmark}
+          aria-label={isBookmarked ? $_('bookmark.remove') : $_('bookmark.add')}
+          title={isBookmarked ? $_('bookmark.remove') : $_('bookmark.add')}
+        >
+          <Icon name={isBookmarked ? 'star-filled' : 'star'} size={14} />
+        </button>
         <Icon name="file-lock" size={14} />
         <code class="dn" title={entry.dn}>{entry.dn}</code>
       </div>
@@ -246,6 +285,16 @@
             <Icon name="search" size={13} />
             <input type="search" placeholder={$_('entry.filter_placeholder')} bind:value={filter} />
           </label>
+          <button
+            type="button"
+            class="ghost"
+            onclick={exportLdif}
+            disabled={exporting}
+            title={$_('ldif.export_tooltip')}
+          >
+            <Icon name={exporting ? 'refresh' : 'export'} size={13} />
+            <span>{exporting ? $_('ldif.exporting') : $_('ldif.export')}</span>
+          </button>
           <button type="button" onclick={() => (editing = true)}>
             <Icon name="pencil" size={13} />
             <span>{$_('entry.actions.edit')}</span>
@@ -381,8 +430,17 @@
     min-width: 0;
     display: flex;
     align-items: center;
-    gap: 0.45rem;
+    gap: 0.3rem;
     color: var(--color-text-muted);
+  }
+
+  .star {
+    color: var(--color-text-subtle);
+  }
+
+  .star.on {
+    color: var(--color-warning);
+    background: color-mix(in oklab, var(--color-warning) 15%, transparent);
   }
 
   .dn {
