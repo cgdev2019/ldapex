@@ -11,7 +11,7 @@
 
 services:
   openldap:
-    image: bitnami/openldap:2.6
+    image: bitnamilegacy/openldap:2.6
     container_name: ldapex-openldap
     ports:
       - "3389:1389"
