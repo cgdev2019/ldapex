@@ -23,6 +23,7 @@ base64 = "0.22"
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 serde_json.workspace = true
+toml = "0.8"
 
 [features]
 # Enable integration tests that require a running OpenLDAP (see

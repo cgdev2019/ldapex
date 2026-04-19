@@ -24,7 +24,8 @@
 </script>
 
 <form onsubmit={onSubmit}>
-  <h1>Connexion LDAP</h1>
+  <h2>Connexion rapide</h2>
+  <p class="hint">Pour une session ponctuelle. Pour sauvegarder, crée un profil ci-dessus.</p>
 
   <label>
     <span>URL</span>
@@ -66,20 +67,26 @@
 
 <style>
   form {
-    max-width: 28rem;
-    margin: 2rem auto;
-    padding: 1.5rem;
+    max-width: 42rem;
+    margin: 0 auto 2rem auto;
+    padding: 1rem 1.5rem;
     border: 1px solid light-dark(#ddd, #333);
     border-radius: 8px;
     display: flex;
     flex-direction: column;
-    gap: 0.9rem;
+    gap: 0.6rem;
     background: light-dark(#fff, #161616);
   }
 
-  h1 {
-    margin: 0 0 0.5rem 0;
-    font-size: 1.25rem;
+  h2 {
+    margin: 0;
+    font-size: 1.05rem;
+  }
+
+  .hint {
+    margin: 0;
+    font-size: 0.8rem;
+    color: light-dark(#666, #888);
   }
 
   label {
@@ -96,15 +103,11 @@
   input,
   select {
     font: inherit;
-    padding: 0.45rem 0.6rem;
+    padding: 0.4rem 0.55rem;
     border: 1px solid light-dark(#ccc, #333);
     background: light-dark(#fff, #0e0e0e);
     color: inherit;
     border-radius: 4px;
-  }
-
-  button {
-    margin-top: 0.25rem;
   }
 
   .error {

@@ -1,17 +1,32 @@
 use ldapex_core::{
-    Attribute, ConnectOptions, DnLabel, Entry, LdapClient, LdapexError, Modification,
-    Result as CoreResult, SchemaInfo, SearchParams, TlsMode,
+    Attribute, ConnectOptions, ConnectionProfile, DnLabel, Entry, LdapClient, LdapexError,
+    Modification, Result as CoreResult, SchemaInfo, SearchParams, TlsMode,
 };
 use serde::{Deserialize, Serialize};
 use tauri::State;
 use tokio::sync::Mutex;
 
+use crate::profiles::{ProfileError, ProfileManager};
+
 /// Shared application state. A single LDAP session at a time is enough
 /// for the MVP; multi-session can come later by swapping this for a
 /// `HashMap<ProfileId, LdapClient>`.
-#[derive(Default)]
 pub struct AppState {
     session: Mutex<Option<LdapClient>>,
+    profiles: ProfileManager,
+}
+
+impl AppState {
+    pub fn new() -> Result<Self, ProfileError> {
+        Ok(Self {
+            session: Mutex::new(None),
+            profiles: ProfileManager::new()?,
+        })
+    }
+}
+
+fn profile_err(err: ProfileError) -> LdapexError {
+    LdapexError::Internal(err.to_string())
 }
 
 /// Shape returned by the bootstrap `ping` command. Mirrors the type
@@ -31,6 +46,8 @@ pub fn ping() -> PingResponse {
         app_version: env!("CARGO_PKG_VERSION"),
     }
 }
+
+// -------------------- Session commands --------------------
 
 /// Input for the `ldap_connect` command.
 #[derive(Debug, Deserialize)]
@@ -54,9 +71,6 @@ pub async fn ldap_connect(state: State<'_, AppState>, input: ConnectInput) -> Co
     let client = LdapClient::connect(options).await?;
     client.simple_bind(&input.bind_dn, &input.password).await?;
 
-    // Replace any previous session. Dropping the previous `LdapClient`
-    // sends an unbind on the underlying handle, which is enough for
-    // MVP; we do not block on it.
     *state.session.lock().await = Some(client);
     Ok(())
 }
@@ -156,4 +170,128 @@ pub async fn ldap_fetch_schema(state: State<'_, AppState>) -> CoreResult<SchemaI
     let guard = state.session.lock().await;
     let client = guard.as_ref().ok_or(LdapexError::NotConnected)?;
     client.fetch_schema().await
+}
+
+// -------------------- Profile commands --------------------
+
+/// Saved profile summary returned to the UI. Mirrors
+/// `ldapex_core::ConnectionProfile` + an extra `has_saved_password`
+/// flag sourced from the keyring.
+#[derive(Debug, Serialize)]
+pub struct ProfileSummary {
+    #[serde(flatten)]
+    pub profile: ConnectionProfile,
+    pub has_saved_password: bool,
+}
+
+#[tauri::command]
+pub fn profile_list(state: State<'_, AppState>) -> CoreResult<Vec<ProfileSummary>> {
+    let profiles = state.profiles.list().map_err(profile_err)?;
+    Ok(profiles
+        .into_iter()
+        .map(|p| {
+            let has_saved_password = state.profiles.get_password(&p.id).ok().flatten().is_some();
+            ProfileSummary {
+                profile: p,
+                has_saved_password,
+            }
+        })
+        .collect())
+}
+
+#[tauri::command]
+pub fn profile_save(
+    state: State<'_, AppState>,
+    profile: ConnectionProfile,
+) -> CoreResult<ConnectionProfile> {
+    state.profiles.save(profile).map_err(profile_err)
+}
+
+#[tauri::command]
+pub fn profile_delete(state: State<'_, AppState>, id: String) -> CoreResult<()> {
+    state.profiles.delete(&id).map_err(profile_err)
+}
+
+#[tauri::command]
+pub fn profile_set_password(
+    state: State<'_, AppState>,
+    id: String,
+    password: String,
+) -> CoreResult<()> {
+    state
+        .profiles
+        .set_password(&id, &password)
+        .map_err(profile_err)
+}
+
+#[tauri::command]
+pub fn profile_clear_password(state: State<'_, AppState>, id: String) -> CoreResult<()> {
+    state.profiles.clear_password(&id).map_err(profile_err)
+}
+
+#[tauri::command]
+pub fn profile_export(state: State<'_, AppState>) -> CoreResult<String> {
+    state.profiles.export_json().map_err(profile_err)
+}
+
+#[tauri::command]
+pub fn profile_import(
+    state: State<'_, AppState>,
+    json: String,
+) -> CoreResult<Vec<ConnectionProfile>> {
+    state.profiles.import_json(&json).map_err(profile_err)
+}
+
+/// Connect using a saved profile. `password` may be empty — in that
+/// case the stored keyring entry is used. `remember` (when true)
+/// writes the provided password to the keyring on successful bind.
+#[derive(Debug, Deserialize)]
+pub struct ProfileConnectInput {
+    pub id: String,
+    #[serde(default)]
+    pub password: Option<String>,
+    #[serde(default)]
+    pub remember: bool,
+}
+
+#[tauri::command]
+pub async fn profile_connect(
+    state: State<'_, AppState>,
+    input: ProfileConnectInput,
+) -> CoreResult<ConnectionProfile> {
+    let profile = state
+        .profiles
+        .list()
+        .map_err(profile_err)?
+        .into_iter()
+        .find(|p| p.id == input.id)
+        .ok_or_else(|| LdapexError::Internal(format!("profile not found: {}", input.id)))?;
+
+    let password = if let Some(pw) = input.password.as_ref().filter(|s| !s.is_empty()) {
+        pw.clone()
+    } else {
+        state
+            .profiles
+            .get_password(&profile.id)
+            .map_err(profile_err)?
+            .ok_or_else(|| LdapexError::InvalidCredentials)?
+    };
+
+    let options = ConnectOptions {
+        url: profile.url.clone(),
+        tls: profile.tls,
+        timeout_secs: profile.timeout_secs.or(Some(30)),
+    };
+    let client = LdapClient::connect(options).await?;
+    client.simple_bind(&profile.bind_dn, &password).await?;
+
+    if input.remember {
+        state
+            .profiles
+            .set_password(&profile.id, &password)
+            .map_err(profile_err)?;
+    }
+
+    *state.session.lock().await = Some(client);
+    Ok(profile)
 }

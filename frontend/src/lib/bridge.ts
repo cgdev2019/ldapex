@@ -188,3 +188,60 @@ export async function ldapRename(input: RenameInput): Promise<void> {
 export async function ldapFetchSchema(): Promise<SchemaInfo> {
   return invoke<SchemaInfo>('ldap_fetch_schema');
 }
+
+// ---------- Phase 3 types ----------
+
+export interface ConnectionProfile {
+  id: string;
+  name: string;
+  url: string;
+  bind_dn: string;
+  base_dn: string;
+  tls: TlsMode;
+  timeout_secs?: number | null;
+  save_password: boolean;
+}
+
+export interface ProfileSummary extends ConnectionProfile {
+  has_saved_password: boolean;
+}
+
+export interface ProfileConnectInput {
+  id: string;
+  password?: string;
+  remember?: boolean;
+}
+
+// ---------- Phase 3 commands ----------
+
+export async function profileList(): Promise<ProfileSummary[]> {
+  return invoke<ProfileSummary[]>('profile_list');
+}
+
+export async function profileSave(profile: ConnectionProfile): Promise<ConnectionProfile> {
+  return invoke<ConnectionProfile>('profile_save', { profile });
+}
+
+export async function profileDelete(id: string): Promise<void> {
+  await invoke('profile_delete', { id });
+}
+
+export async function profileSetPassword(id: string, password: string): Promise<void> {
+  await invoke('profile_set_password', { id, password });
+}
+
+export async function profileClearPassword(id: string): Promise<void> {
+  await invoke('profile_clear_password', { id });
+}
+
+export async function profileExport(): Promise<string> {
+  return invoke<string>('profile_export');
+}
+
+export async function profileImport(json: string): Promise<ConnectionProfile[]> {
+  return invoke<ConnectionProfile[]>('profile_import', { json });
+}
+
+export async function profileConnect(input: ProfileConnectInput): Promise<ConnectionProfile> {
+  return invoke<ConnectionProfile>('profile_connect', { input });
+}

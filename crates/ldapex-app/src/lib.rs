@@ -3,6 +3,7 @@
 //! mobile target.
 
 mod commands;
+mod profiles;
 
 use commands::AppState;
 use tracing_subscriber::EnvFilter;
@@ -12,8 +13,10 @@ use tracing_subscriber::EnvFilter;
 pub fn run() {
     init_tracing();
 
+    let state = AppState::new().expect("initialise profile storage");
+
     tauri::Builder::default()
-        .manage(AppState::default())
+        .manage(state)
         .invoke_handler(tauri::generate_handler![
             commands::ping,
             commands::ldap_connect,
@@ -26,6 +29,14 @@ pub fn run() {
             commands::ldap_delete,
             commands::ldap_rename,
             commands::ldap_fetch_schema,
+            commands::profile_list,
+            commands::profile_save,
+            commands::profile_delete,
+            commands::profile_set_password,
+            commands::profile_clear_password,
+            commands::profile_export,
+            commands::profile_import,
+            commands::profile_connect,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Ldapex");

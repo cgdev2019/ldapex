@@ -3,6 +3,7 @@
   import DitTree from '$lib/components/DitTree.svelte';
   import EntryPanel from '$lib/components/EntryPanel.svelte';
   import LoginForm from '$lib/components/LoginForm.svelte';
+  import ProfilePicker from '$lib/components/ProfilePicker.svelte';
   import SearchPanel from '$lib/components/SearchPanel.svelte';
   import { session } from '$lib/session.svelte';
 
@@ -39,7 +40,10 @@
 </script>
 
 {#if !session.connected || !session.baseDn}
-  <LoginForm />
+  <div class="login-view">
+    <ProfilePicker />
+    <LoginForm />
+  </div>
 {:else}
   <header class="topbar">
     <strong>{session.bindDn ?? '(anonyme)'}</strong>
@@ -97,6 +101,10 @@
 {/if}
 
 <style>
+  .login-view {
+    padding: 1rem 0.5rem;
+  }
+
   .topbar {
     display: flex;
     align-items: center;
