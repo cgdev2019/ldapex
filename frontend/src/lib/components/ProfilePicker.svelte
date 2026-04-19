@@ -10,6 +10,7 @@
     type ProfileSummary
   } from '$lib/bridge';
   import { session } from '$lib/session.svelte';
+  import { copyToClipboard } from '$lib/clipboard';
   import Icon from './Icon.svelte';
   import ProfileEditor from './ProfileEditor.svelte';
 
@@ -88,7 +89,7 @@
   async function doExport() {
     try {
       const json = await profileExport();
-      await navigator.clipboard.writeText(json);
+      await copyToClipboard(json);
       window.alert(get(_)('profile.picker.export_ok'));
     } catch (err) {
       error = formatError(err);

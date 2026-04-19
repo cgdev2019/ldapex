@@ -12,6 +12,7 @@
     type Modification
   } from '$lib/bridge';
   import { bookmarks, recents } from '$lib/bookmarks.svelte';
+  import { copyToClipboard } from '$lib/clipboard';
   import Icon from './Icon.svelte';
 
   interface Props {
@@ -96,7 +97,7 @@
     error = null;
     try {
       const res = await ldapExportLdif({ base_dn: dn, scope: 'subtree' });
-      await navigator.clipboard.writeText(res.ldif);
+      await copyToClipboard(res.ldif);
       window.alert(
         get(_)('ldif.exported_entry', { values: { count: res.entry_count } })
       );
@@ -216,7 +217,7 @@
 
   async function copy(text: string) {
     try {
-      await navigator.clipboard.writeText(text);
+      await copyToClipboard(text);
     } catch {
       /* ignore */
     }

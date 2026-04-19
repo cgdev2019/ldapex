@@ -18,6 +18,7 @@ pub fn run() {
     let state = AppState::new().expect("initialise profile storage");
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_clipboard_manager::init())
         .manage(state)
         .invoke_handler(tauri::generate_handler![
             commands::ping,
