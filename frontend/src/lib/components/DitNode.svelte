@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { _ } from 'svelte-i18n';
   import { formatError, ldapListChildren, type DnLabel } from '$lib/bridge';
   import DitNode from './DitNode.svelte';
 
@@ -48,7 +49,7 @@
       type="button"
       class="chevron"
       onclick={toggle}
-      aria-label={expanded ? 'Replier' : 'Déplier'}
+      aria-label={expanded ? $_('tree.collapse') : $_('tree.expand')}
     >
       {expanded ? '▾' : '▸'}
     </button>
@@ -61,11 +62,11 @@
   {#if expanded}
     <ul class="children">
       {#if loading}
-        <li class="status">Chargement…</li>
+        <li class="status">{$_('tree.loading')}</li>
       {:else if error}
         <li class="status error">{error}</li>
       {:else if children && children.length === 0}
-        <li class="status muted">(aucun enfant)</li>
+        <li class="status muted">{$_('tree.empty_children')}</li>
       {:else if children}
         {#each children as child (child.dn)}
           <DitNode node={child} {selectedDn} {onselect} />

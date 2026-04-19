@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
+  import { _ } from 'svelte-i18n';
   import {
     formatError,
     profileSave,
@@ -16,7 +18,7 @@
   let { profile = null, onclose, onsaved }: Props = $props();
 
   const isNew = profile === null;
-  let name = $state(profile?.name ?? 'Nouveau profil');
+  let name = $state(profile?.name ?? get(_)('profile.editor.default_name'));
   let url = $state(profile?.url ?? 'ldap://127.0.0.1:389');
   let bindDn = $state(profile?.bind_dn ?? '');
   let baseDn = $state(profile?.base_dn ?? '');
@@ -52,57 +54,64 @@
   }
 </script>
 
-<div class="backdrop" role="dialog" aria-modal="true" aria-label={isNew ? 'Nouveau profil' : 'Modifier profil'}>
+<div
+  class="backdrop"
+  role="dialog"
+  aria-modal="true"
+  aria-label={isNew ? $_('profile.editor.new_title') : $_('profile.editor.edit_title', { values: { name: profile?.name ?? '' } })}
+>
   <div class="dialog">
-    <h2>{isNew ? 'Nouveau profil' : `Modifier « ${profile?.name} »`}</h2>
+    <h2>
+      {isNew
+        ? $_('profile.editor.new_title')
+        : $_('profile.editor.edit_title', { values: { name: profile?.name ?? '' } })}
+    </h2>
 
     <form onsubmit={submit}>
       <label>
-        <span>Nom</span>
+        <span>{$_('profile.editor.name')}</span>
         <input type="text" bind:value={name} required />
       </label>
 
       <label>
-        <span>URL</span>
+        <span>{$_('profile.editor.url')}</span>
         <input
           type="text"
           bind:value={url}
           required
-          placeholder="ldap://host:389 ou ldaps://host:636"
+          placeholder={$_('profile.editor.url_placeholder')}
           spellcheck="false"
         />
       </label>
 
       <label>
-        <span>Bind DN (vide = anonyme)</span>
+        <span>{$_('profile.editor.bind_dn')}</span>
         <input type="text" bind:value={bindDn} spellcheck="false" />
       </label>
 
       <label>
-        <span>Base DN</span>
+        <span>{$_('profile.editor.base_dn')}</span>
         <input type="text" bind:value={baseDn} required spellcheck="false" />
       </label>
 
       <label>
         <span>TLS</span>
         <select bind:value={tls}>
-          <option value="none">Aucun (déconseillé en prod)</option>
-          <option value="start_tls">StartTLS</option>
-          <option value="ldaps">LDAPS (ldaps://)</option>
+          <option value="none">{$_('profile.editor.tls_none')}</option>
+          <option value="start_tls">{$_('profile.editor.tls_starttls')}</option>
+          <option value="ldaps">{$_('profile.editor.tls_ldaps')}</option>
         </select>
       </label>
 
       <label>
-        <span>Mot de passe (vide = demandé à chaque connexion)</span>
+        <span>{$_('profile.editor.password_label')}</span>
         <input
           type="password"
           bind:value={password}
           autocomplete="new-password"
-          placeholder={profile?.has_saved_password ? '•••••• (déjà stocké, laisser vide pour conserver)' : ''}
+          placeholder={profile?.has_saved_password ? $_('profile.editor.password_placeholder_stored') : ''}
         />
-        <p class="hint">
-          Stocké en clair dans <code>~/.ldapex/profiles.toml</code> (chmod 0600 sous Unix).
-        </p>
+        <p class="hint">{$_('profile.editor.password_hint')}</p>
       </label>
 
       {#if error}
@@ -110,8 +119,12 @@
       {/if}
 
       <div class="actions">
-        <button type="submit" disabled={saving}>{saving ? 'Enregistrement…' : 'Enregistrer'}</button>
-        <button type="button" class="secondary" onclick={onclose} disabled={saving}>Annuler</button>
+        <button type="submit" disabled={saving}>
+          {saving ? $_('profile.editor.saving') : $_('profile.editor.save')}
+        </button>
+        <button type="button" class="secondary" onclick={onclose} disabled={saving}>
+          {$_('common.cancel')}
+        </button>
       </div>
     </form>
   </div>

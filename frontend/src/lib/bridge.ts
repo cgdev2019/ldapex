@@ -1,4 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
+import { get } from 'svelte/store';
+import { _ } from 'svelte-i18n';
 
 /**
  * Types below mirror `crates/ldapex-core/src/{types,client,error}.rs`
@@ -59,29 +61,34 @@ export interface LdapexError {
 }
 
 export function formatError(err: unknown): string {
+  const t = get(_);
   if (err && typeof err === 'object' && 'kind' in err) {
     const e = err as LdapexError;
     switch (e.kind) {
       case 'invalid_credentials':
-        return 'Identifiants invalides.';
+        return t('errors.invalid_credentials');
       case 'not_connected':
-        return 'Session LDAP fermée.';
+        return t('errors.not_connected');
       case 'no_such_object':
-        return `Entrée introuvable : ${String(e.message)}`;
+        return t('errors.no_such_object', { values: { message: String(e.message) } });
       case 'protocol':
-        if (typeof e.message === 'object') {
-          return `Erreur LDAP ${e.message.code} : ${e.message.message}`;
+        if (typeof e.message === 'object' && e.message !== null) {
+          return t('errors.protocol_with_code', {
+            values: { code: e.message.code, message: e.message.message }
+          });
         }
-        return `Erreur LDAP : ${String(e.message)}`;
+        return t('errors.protocol', { values: { message: String(e.message) } });
       case 'tls':
-        return `TLS : ${String(e.message)}`;
+        return t('errors.tls', { values: { message: String(e.message) } });
       case 'io':
-        return `I/O : ${String(e.message)}`;
+        return t('errors.io', { values: { message: String(e.message) } });
       case 'invalid_input':
-        return `Entrée invalide : ${String(e.message)}`;
+        return t('errors.invalid_input', { values: { message: String(e.message) } });
       case 'internal':
       default:
-        return `Erreur interne : ${String(e.message ?? 'inconnue')}`;
+        return t('errors.internal', {
+          values: { message: String(e.message ?? t('errors.unknown')) }
+        });
     }
   }
   return err instanceof Error ? err.message : String(err);

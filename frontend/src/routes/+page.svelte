@@ -1,10 +1,12 @@
 <script lang="ts">
+  import { locale } from 'svelte-i18n';
   import CreateEntryDialog from '$lib/components/CreateEntryDialog.svelte';
   import DitTree from '$lib/components/DitTree.svelte';
   import EntryPanel from '$lib/components/EntryPanel.svelte';
   import LoginForm from '$lib/components/LoginForm.svelte';
   import ProfilePicker from '$lib/components/ProfilePicker.svelte';
   import SearchPanel from '$lib/components/SearchPanel.svelte';
+  import { setLocale, type SupportedLocale } from '$lib/i18n';
   import { session } from '$lib/session.svelte';
 
   let selectedDn = $state<string | null>(null);
@@ -49,6 +51,15 @@
     <strong>{session.bindDn ?? '(anonyme)'}</strong>
     <span class="url">@ {session.url}</span>
     <button type="button" onclick={openCreate}>+ Entrée</button>
+    <select
+      class="lang"
+      aria-label="Language"
+      value={$locale?.startsWith('fr') ? 'fr' : 'en'}
+      onchange={(e) => setLocale((e.currentTarget as HTMLSelectElement).value as SupportedLocale)}
+    >
+      <option value="en">EN</option>
+      <option value="fr">FR</option>
+    </select>
     <button type="button" onclick={onDisconnect}>Déconnexion</button>
   </header>
 
