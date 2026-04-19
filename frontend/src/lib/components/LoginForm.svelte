@@ -14,106 +14,130 @@
     event.preventDefault();
     error = null;
     try {
-      await session.connect(
-        { url, bind_dn: bindDn, password, tls },
-        baseDn
-      );
+      await session.connect({ url, bind_dn: bindDn, password, tls }, baseDn);
     } catch (err) {
       error = formatError(err);
     }
   }
 </script>
 
-<form onsubmit={onSubmit}>
-  <h2>{$_('login.title')}</h2>
-  <p class="hint">{$_('login.hint')}</p>
+<section class="card">
+  <header>
+    <h2>{$_('login.title')}</h2>
+    <p class="hint">{$_('login.hint')}</p>
+  </header>
 
-  <label>
-    <span>{$_('login.url')}</span>
-    <input type="text" bind:value={url} required placeholder="ldap://host:389" />
-  </label>
+  <form onsubmit={onSubmit}>
+    <div class="grid">
+      <label>
+        <span>{$_('login.url')}</span>
+        <input type="text" bind:value={url} required placeholder="ldap://host:389" />
+      </label>
 
-  <label>
-    <span>{$_('login.bind_dn')}</span>
-    <input type="text" bind:value={bindDn} placeholder="cn=admin,dc=example,dc=org" />
-  </label>
+      <label>
+        <span>{$_('login.tls')}</span>
+        <select bind:value={tls}>
+          <option value="none">{$_('login.tls_none')}</option>
+          <option value="start_tls">{$_('login.tls_starttls')}</option>
+          <option value="ldaps">{$_('login.tls_ldaps')}</option>
+        </select>
+      </label>
 
-  <label>
-    <span>{$_('login.password')}</span>
-    <input type="password" bind:value={password} autocomplete="current-password" />
-  </label>
+      <label class="span-2">
+        <span>{$_('login.bind_dn')}</span>
+        <input type="text" bind:value={bindDn} placeholder="cn=admin,dc=example,dc=org" />
+      </label>
 
-  <label>
-    <span>{$_('login.base_dn')}</span>
-    <input type="text" bind:value={baseDn} required placeholder="dc=example,dc=org" />
-  </label>
+      <label class="span-2">
+        <span>{$_('login.password')}</span>
+        <input type="password" bind:value={password} autocomplete="current-password" />
+      </label>
 
-  <label>
-    <span>{$_('login.tls')}</span>
-    <select bind:value={tls}>
-      <option value="none">{$_('login.tls_none')}</option>
-      <option value="start_tls">{$_('login.tls_starttls')}</option>
-      <option value="ldaps">{$_('login.tls_ldaps')}</option>
-    </select>
-  </label>
+      <label class="span-2">
+        <span>{$_('login.base_dn')}</span>
+        <input type="text" bind:value={baseDn} required placeholder="dc=example,dc=org" />
+      </label>
+    </div>
 
-  <button type="submit" disabled={session.connecting}>
-    {session.connecting ? $_('common.connecting') : $_('login.submit')}
-  </button>
+    {#if error}
+      <p class="status error">{error}</p>
+    {/if}
 
-  {#if error}
-    <p class="error">{error}</p>
-  {/if}
-</form>
+    <button type="submit" class="primary lg" disabled={session.connecting}>
+      {session.connecting ? $_('common.connecting') : $_('login.submit')}
+    </button>
+  </form>
+</section>
 
 <style>
-  form {
-    max-width: 42rem;
-    margin: 0 auto 2rem auto;
-    padding: 1rem 1.5rem;
-    border: 1px solid light-dark(#ddd, #333);
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-    background: light-dark(#fff, #161616);
+  .card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
   }
 
-  h2 {
-    margin: 0;
+  header {
+    padding: 1.1rem 1.5rem 0.6rem;
+    border-bottom: 1px solid var(--color-border-subtle);
+    background: var(--color-surface);
+  }
+
+  header h2 {
     font-size: 1.05rem;
   }
 
   .hint {
-    margin: 0;
-    font-size: 0.8rem;
-    color: light-dark(#666, #888);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    margin-top: 0.2rem;
+  }
+
+  form {
+    padding: 1.1rem 1.5rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 11rem;
+    gap: 0.9rem 1rem;
+  }
+
+  .span-2 {
+    grid-column: span 2;
   }
 
   label {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    font-size: 0.9rem;
+    gap: 0.3rem;
+    font-size: var(--text-sm);
   }
 
   label > span {
-    color: light-dark(#555, #aaa);
+    color: var(--color-text-muted);
+    font-weight: 500;
   }
 
-  input,
-  select {
-    font: inherit;
-    padding: 0.4rem 0.55rem;
-    border: 1px solid light-dark(#ccc, #333);
-    background: light-dark(#fff, #0e0e0e);
-    color: inherit;
-    border-radius: 4px;
+  :global(button.lg) {
+    padding: 0.6rem 1.1rem;
+    font-size: var(--text-base);
+    font-weight: 600;
+    align-self: flex-end;
+    min-width: 9rem;
+    justify-content: center;
   }
 
-  .error {
-    color: #c0392b;
-    margin: 0;
-    font-size: 0.9rem;
+  .status.error {
+    color: var(--color-danger);
+    background: var(--color-danger-soft);
+    border: 1px solid color-mix(in oklab, var(--color-danger) 25%, transparent);
+    padding: 0.5rem 0.7rem;
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
   }
 </style>

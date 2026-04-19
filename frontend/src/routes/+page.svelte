@@ -3,6 +3,7 @@
   import CreateEntryDialog from '$lib/components/CreateEntryDialog.svelte';
   import DitTree from '$lib/components/DitTree.svelte';
   import EntryPanel from '$lib/components/EntryPanel.svelte';
+  import Icon from '$lib/components/Icon.svelte';
   import LoginForm from '$lib/components/LoginForm.svelte';
   import ProfilePicker from '$lib/components/ProfilePicker.svelte';
   import SearchPanel from '$lib/components/SearchPanel.svelte';
@@ -25,9 +26,6 @@
       onRefresh: () => {
         treeRefreshKey += 1;
       },
-      // Save and Delete are routed to EntryPanel via window events
-      // so the component stays authoritative on "am I editing?" and
-      // "which DN is selected?".
       onSave: () => window.dispatchEvent(new Event('ldapex:save')),
       onDelete: () => window.dispatchEvent(new Event('ldapex:delete'))
     });
@@ -62,26 +60,61 @@
 
 {#if !session.connected || !session.baseDn}
   <div class="login-view">
+    <header class="brand">
+      <div class="logo">L</div>
+      <div class="brand-text">
+        <h1>Ldapex</h1>
+        <p>LDAP directory browser</p>
+      </div>
+      <div class="brand-spacer"></div>
+      <select
+        class="lang"
+        aria-label={$_('language.label')}
+        value={$locale?.startsWith('fr') ? 'fr' : 'en'}
+        onchange={(e) =>
+          setLocale((e.currentTarget as HTMLSelectElement).value as SupportedLocale)}
+      >
+        <option value="en">EN</option>
+        <option value="fr">FR</option>
+      </select>
+    </header>
     <ProfilePicker />
     <LoginForm />
   </div>
 {:else}
   <header class="topbar">
-    <strong>{session.bindDn || $_('common.anonymous')}</strong>
-    <span class="url">@ {session.url}</span>
-    <button type="button" onclick={openCreate} title={$_('nav.new_entry_tooltip')}>
-      {$_('nav.new_entry')}
-    </button>
-    <select
-      class="lang"
-      aria-label={$_('language.label')}
-      value={$locale?.startsWith('fr') ? 'fr' : 'en'}
-      onchange={(e) => setLocale((e.currentTarget as HTMLSelectElement).value as SupportedLocale)}
-    >
-      <option value="en">EN</option>
-      <option value="fr">FR</option>
-    </select>
-    <button type="button" onclick={onDisconnect}>{$_('nav.disconnect')}</button>
+    <div class="brand-chip">
+      <div class="logo sm">L</div>
+      <span class="brand-name">Ldapex</span>
+    </div>
+
+    <div class="session-info" title={session.url ?? ''}>
+      <Icon name="user" size={14} />
+      <span class="dn">{session.bindDn || $_('common.anonymous')}</span>
+      <span class="sep">@</span>
+      <span class="url">{session.url}</span>
+    </div>
+
+    <div class="topbar-actions">
+      <button type="button" class="primary" onclick={openCreate} title={$_('nav.new_entry_tooltip')}>
+        <Icon name="plus" size={15} />
+        <span>{$_('nav.new_entry')}</span>
+      </button>
+      <select
+        class="lang"
+        aria-label={$_('language.label')}
+        value={$locale?.startsWith('fr') ? 'fr' : 'en'}
+        onchange={(e) =>
+          setLocale((e.currentTarget as HTMLSelectElement).value as SupportedLocale)}
+      >
+        <option value="en">EN</option>
+        <option value="fr">FR</option>
+      </select>
+      <button type="button" class="ghost" onclick={onDisconnect} title={$_('nav.disconnect')}>
+        <Icon name="log-out" size={15} />
+        <span class="hide-sm">{$_('nav.disconnect')}</span>
+      </button>
+    </div>
   </header>
 
   <div class="layout">
@@ -94,7 +127,8 @@
           class:active={sidePanel === 'browse'}
           onclick={() => (sidePanel = 'browse')}
         >
-          {$_('tabs.tree')}
+          <Icon name="folder" size={14} />
+          <span>{$_('tabs.tree')}</span>
         </button>
         <button
           type="button"
@@ -104,7 +138,8 @@
           onclick={() => (sidePanel = 'search')}
           title={$_('tabs.search_tooltip')}
         >
-          {$_('tabs.search')}
+          <Icon name="search" size={14} />
+          <span>{$_('tabs.search')}</span>
         </button>
       </nav>
 
@@ -135,31 +170,130 @@
 
 <style>
   .login-view {
-    padding: 1rem 0.5rem;
+    max-width: 44rem;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0 0.25rem;
+  }
+
+  .brand h1 {
+    font-size: 1.6rem;
+    letter-spacing: -0.015em;
+  }
+
+  .brand p {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    margin-top: 0.15rem;
+  }
+
+  .brand-spacer {
+    flex: 1;
+  }
+
+  .logo {
+    display: grid;
+    place-items: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.35rem;
+    letter-spacing: -0.02em;
+    box-shadow: var(--shadow-md);
+  }
+
+  .logo.sm {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: var(--radius-md);
+    font-size: 0.95rem;
   }
 
   .topbar {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.5rem 1rem;
-    border-bottom: 1px solid light-dark(#ddd, #333);
-    font-size: 0.9rem;
+    gap: 1rem;
+    padding: 0.55rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface);
+    font-size: var(--text-sm);
+    min-height: 3rem;
   }
 
-  .topbar .url {
-    color: light-dark(#666, #888);
+  .brand-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+  }
+
+  .session-info {
     flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--color-text-muted);
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .session-info .dn {
+    color: var(--color-text);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .session-info .sep {
+    color: var(--color-text-subtle);
+  }
+
+  .session-info .url {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .lang {
+    width: auto;
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+    padding-left: 0.55rem;
+    font-size: var(--text-sm);
   }
 
   .layout {
     display: grid;
-    grid-template-columns: minmax(16rem, 24rem) 1fr;
+    grid-template-columns: minmax(16rem, 22rem) 1fr;
     height: calc(100vh - 3rem);
+    min-height: 0;
   }
 
   .side {
-    border-right: 1px solid light-dark(#ddd, #333);
+    border-right: 1px solid var(--color-border);
+    background: var(--color-surface);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -167,23 +301,42 @@
 
   .tabs {
     display: flex;
-    border-bottom: 1px solid light-dark(#ddd, #333);
+    padding: 0.4rem 0.4rem 0;
+    gap: 0.2rem;
+    border-bottom: 1px solid var(--color-border);
   }
 
   .tabs button {
     flex: 1;
+    gap: 0.35rem;
     background: transparent;
     border: none;
-    padding: 0.5rem;
-    border-bottom: 2px solid transparent;
-    color: inherit;
+    padding: 0.55rem 0.4rem;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    color: var(--color-text-muted);
     cursor: pointer;
-    font: inherit;
+    font-weight: 500;
+    position: relative;
+  }
+
+  .tabs button:hover:not(.active) {
+    color: var(--color-text);
+    background: var(--color-surface-hover);
   }
 
   .tabs button.active {
-    border-bottom-color: light-dark(#0057b7, #7aaeff);
-    font-weight: 600;
+    color: var(--color-primary);
+  }
+
+  .tabs button.active::after {
+    content: '';
+    position: absolute;
+    left: 0.4rem;
+    right: 0.4rem;
+    bottom: -1px;
+    height: 2px;
+    background: var(--color-primary);
+    border-radius: 2px;
   }
 
   .side-body {
@@ -197,5 +350,15 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    background: var(--color-bg);
+  }
+
+  @media (max-width: 680px) {
+    .hide-sm {
+      display: none;
+    }
+    .session-info .url {
+      display: none;
+    }
   }
 </style>

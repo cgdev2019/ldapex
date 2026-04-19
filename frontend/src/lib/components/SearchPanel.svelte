@@ -3,6 +3,7 @@
   import { _ } from 'svelte-i18n';
   import { formatError, ldapSearch, type Entry, type SearchScope } from '$lib/bridge';
   import { session } from '$lib/session.svelte';
+  import Icon from './Icon.svelte';
 
   interface Props {
     baseDn: string;
@@ -23,8 +24,6 @@
   const HISTORY_MAX = 20;
 
   $effect(() => {
-    // If the caller changes the base DN (e.g. fresh login), prefill it
-    // but leave the filter/scope alone.
     searchBase = baseDn;
   });
 
@@ -32,11 +31,6 @@
     history = loadHistory(historyKey());
   });
 
-  /**
-   * History is scoped per profile so a work Prod filter does not
-   * autocomplete a personal test server. Quick-connect sessions share
-   * the `adhoc` bucket.
-   */
   function historyKey(): string {
     const id = session.activeProfileId ?? 'adhoc';
     return `ldapex.search-history.${id}`;
@@ -63,7 +57,7 @@
     try {
       localStorage.setItem(key, JSON.stringify(next));
     } catch {
-      /* quota exceeded or storage disabled — ignore */
+      /* ignore */
     }
   }
 
@@ -112,11 +106,11 @@
 <form onsubmit={run}>
   <label>
     <span>{$_('search.base_dn')}</span>
-    <input type="text" bind:value={searchBase} required />
+    <input type="text" bind:value={searchBase} required spellcheck="false" />
   </label>
 
   <div class="row">
-    <label>
+    <label class="flex">
       <span>{$_('search.scope')}</span>
       <select bind:value={scope}>
         <option value="base">base</option>
@@ -125,7 +119,7 @@
       </select>
     </label>
 
-    <label>
+    <label class="sm">
       <span>{$_('search.size_limit')}</span>
       <input type="number" min="0" bind:value={sizeLimit} />
     </label>
@@ -148,45 +142,60 @@
   </label>
 
   <div class="actions">
-    <button type="submit" disabled={loading}>
-      {loading ? $_('search.searching') : $_('search.submit')}
+    <button type="submit" class="primary sm" disabled={loading}>
+      <Icon name={loading ? 'refresh' : 'search'} size={13} />
+      <span>{loading ? $_('search.searching') : $_('search.submit')}</span>
     </button>
     {#if history.length > 0}
       <button
         type="button"
-        class="tertiary"
+        class="ghost sm"
         onclick={clearHistory}
         title={$_('search.clear_history_tooltip')}
       >
-        {$_('search.clear_history', { values: { count: history.length } })}
+        <Icon name="x" size={12} />
+        <span>{$_('search.clear_history', { values: { count: history.length } })}</span>
       </button>
     {/if}
   </div>
 </form>
 
-{#if error}
-  <p class="status error">{error}</p>
-{:else if results.length > 0}
-  <ul class="results">
-    {#each results as entry (entry.dn)}
-      <li>
-        <button type="button" onclick={() => onselect(entry.dn)} title={entry.dn}>
-          <span class="label">{labelOf(entry)}</span>
-          <span class="dn">{entry.dn}</span>
-        </button>
-      </li>
-    {/each}
-  </ul>
-{:else if !loading}
-  <p class="status muted">{$_('search.no_results')}</p>
-{/if}
+<div class="results-wrap">
+  {#if error}
+    <p class="status error">{error}</p>
+  {:else if results.length > 0}
+    <div class="results-head">
+      <span>{results.length} {results.length === 1 ? 'result' : 'results'}</span>
+    </div>
+    <ul class="results">
+      {#each results as entry (entry.dn)}
+        <li>
+          <button type="button" onclick={() => onselect(entry.dn)} title={entry.dn}>
+            <Icon name="circle-dot" size={12} />
+            <span class="texts">
+              <span class="label">{labelOf(entry)}</span>
+              <span class="dn">{entry.dn}</span>
+            </span>
+          </button>
+        </li>
+      {/each}
+    </ul>
+  {:else if !loading}
+    <p class="status muted">
+      <Icon name="search" size={13} />
+      <span>{$_('search.no_results')}</span>
+    </p>
+  {/if}
+</div>
 
 <style>
   form {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    padding: 0.5rem;
+    gap: 0.55rem;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface);
   }
 
   .row {
@@ -194,94 +203,141 @@
     gap: 0.5rem;
   }
 
-  .row label {
+  .flex {
     flex: 1;
+  }
+
+  .sm {
+    width: 5.5rem;
+    flex-shrink: 0;
   }
 
   label {
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
-    font-size: 0.85rem;
+    gap: 0.25rem;
+    font-size: var(--text-xs);
   }
 
   label > span {
-    color: light-dark(#555, #aaa);
+    color: var(--color-text-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 0.65rem;
   }
 
   input,
   select {
-    font: inherit;
-    padding: 0.35rem 0.5rem;
-    border: 1px solid light-dark(#ccc, #333);
-    background: light-dark(#fff, #0e0e0e);
-    color: inherit;
-    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
   }
 
   .actions {
     display: flex;
-    gap: 0.5rem;
-    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
   }
 
-  .tertiary {
-    background: transparent;
-    font-size: 0.8rem;
-    color: light-dark(#666, #888);
+  .results-wrap {
+    flex: 1;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .results-head {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.65rem;
+    color: var(--color-text-subtle);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    border-bottom: 1px solid var(--color-border-subtle);
+    background: var(--color-surface-2);
   }
 
   .status {
-    padding: 0.5rem;
-    color: light-dark(#666, #888);
-    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.55rem 0.75rem;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
   }
 
   .status.error {
-    color: #c0392b;
+    color: var(--color-danger);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
   }
 
   .status.muted {
-    font-size: 0.85rem;
     font-style: italic;
+    color: var(--color-text-subtle);
   }
 
   .results {
     list-style: none;
     margin: 0;
-    padding: 0 0.25rem;
-    overflow: auto;
+    padding: 0.25rem;
   }
 
   .results li {
-    border-bottom: 1px solid light-dark(#eee, #262626);
+    border-radius: var(--radius-md);
+    transition: background var(--transition-fast);
+  }
+
+  .results li:hover {
+    background: var(--color-surface-hover);
   }
 
   .results button {
     display: flex;
-    flex-direction: column;
     align-items: flex-start;
-    gap: 0.1rem;
+    gap: 0.5rem;
     width: 100%;
     background: none;
     border: none;
     color: inherit;
-    padding: 0.4rem 0.4rem;
+    padding: 0.4rem 0.55rem;
     cursor: pointer;
     text-align: left;
+    border-radius: var(--radius-md);
   }
 
   .results button:hover {
-    background: light-dark(#f3f3f3, #1c1c1c);
+    background: transparent;
+  }
+
+  .results :global(svg) {
+    color: var(--color-primary);
+    margin-top: 0.2rem;
+    flex-shrink: 0;
+  }
+
+  .texts {
+    display: flex;
+    flex-direction: column;
+    gap: 0.05rem;
+    min-width: 0;
+    flex: 1;
   }
 
   .label {
     font-weight: 500;
+    font-size: var(--text-sm);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .dn {
-    font-size: 0.8rem;
-    color: light-dark(#666, #888);
-    word-break: break-all;
+    font-size: 0.72rem;
+    font-family: var(--font-mono);
+    color: var(--color-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 </style>

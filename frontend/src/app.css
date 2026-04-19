@@ -1,13 +1,86 @@
+/*
+ * Ldapex design system — light + dark via `color-scheme` and
+ * `light-dark()`. Everything that needs theming goes through these
+ * tokens; components should never hard-code hex values.
+ */
+
 :root {
   color-scheme: light dark;
-  font-family:
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
-  font-size: 14px;
-  line-height: 1.5;
+
+  /* -------- palette -------- */
+  --color-bg: light-dark(#fafbfd, #0b0d10);
+  --color-surface: light-dark(#ffffff, #14171c);
+  --color-surface-2: light-dark(#f4f6fa, #1a1e24);
+  --color-surface-hover: light-dark(#eef1f7, #1f242c);
+
+  --color-border: light-dark(#e3e6ec, #262a32);
+  --color-border-strong: light-dark(#c8cdd7, #353b45);
+  --color-border-subtle: light-dark(#edeff3, #1f222a);
+
+  --color-text: light-dark(#0b1220, #e7eaf0);
+  --color-text-muted: light-dark(#5a6372, #9097a3);
+  --color-text-subtle: light-dark(#818a98, #6c7380);
+  --color-text-on-primary: #ffffff;
+
+  --color-primary: light-dark(#2563eb, #60a5fa);
+  --color-primary-hover: light-dark(#1d4ed8, #93c5fd);
+  --color-primary-soft: light-dark(#eff4ff, #1e2a44);
+  --color-primary-ring: color-mix(in oklab, var(--color-primary) 40%, transparent);
+
+  --color-danger: light-dark(#dc2626, #f87171);
+  --color-danger-soft: light-dark(#fef2f2, #3a1616);
+
+  --color-success: light-dark(#16a34a, #4ade80);
+  --color-warning: light-dark(#b45309, #fbbf24);
+
+  --color-focus-ring: var(--color-primary-ring);
+
+  /* -------- typography -------- */
+  --font-sans:
+    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', sans-serif;
+  --font-mono:
+    'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9rem;
+  --text-md: 1rem;
+  --text-lg: 1.1rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+
+  /* -------- spacing / radius / shadow -------- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-pill: 999px;
+
+  --shadow-sm: 0 1px 2px rgba(10, 20, 40, 0.05);
+  --shadow-md:
+    0 1px 2px rgba(10, 20, 40, 0.06),
+    0 4px 12px rgba(10, 20, 40, 0.06);
+  --shadow-lg:
+    0 1px 2px rgba(10, 20, 40, 0.06),
+    0 12px 32px rgba(10, 20, 40, 0.10);
+
+  --transition-fast: 120ms cubic-bezier(0.2, 0, 0, 1);
+  --transition-base: 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 html,
@@ -17,27 +90,230 @@ body {
 }
 
 body {
-  background: light-dark(#fafafa, #111);
-  color: light-dark(#111, #eee);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-size: var(--text-2xl);
+}
+h2 {
+  font-size: var(--text-lg);
+}
+h3 {
+  font-size: var(--text-md);
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* -------- form controls -------- */
+
+input[type='text'],
+input[type='search'],
+input[type='password'],
+input[type='number'],
+input[type='email'],
+textarea,
+select {
+  font: inherit;
+  width: 100%;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background var(--transition-fast);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+  padding-right: 1.75rem;
+}
+
+input:hover,
+textarea:hover,
+select:hover {
+  border-color: var(--color-border-strong);
+}
+
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-subtle);
 }
 
 button {
   font: inherit;
-  padding: 0.5rem 0.9rem;
-  border: 1px solid light-dark(#ccc, #333);
-  background: light-dark(#fff, #1a1a1a);
-  color: inherit;
-  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: var(--radius-md);
   cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+  line-height: 1.25;
 }
 
-button:hover {
-  background: light-dark(#f0f0f0, #242424);
+button:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  border-color: var(--color-border-strong);
 }
+
+button:active:not(:disabled) {
+  transform: translateY(0.5px);
+}
+
+button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button.primary {
+  background: var(--color-primary);
+  color: var(--color-text-on-primary);
+  border-color: transparent;
+  font-weight: 500;
+}
+
+button.primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: transparent;
+}
+
+button.ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-text-muted);
+}
+
+button.ghost:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+button.danger {
+  color: var(--color-danger);
+  border-color: color-mix(in oklab, var(--color-danger) 40%, var(--color-border));
+}
+
+button.danger:hover:not(:disabled) {
+  background: var(--color-danger-soft);
+  border-color: var(--color-danger);
+}
+
+button.icon-only {
+  padding: 0.35rem;
+  width: 1.9rem;
+  height: 1.9rem;
+}
+
+button.sm {
+  padding: 0.3rem 0.6rem;
+  font-size: var(--text-sm);
+}
+
+/* -------- code + data -------- */
 
 code {
-  font-family: ui-monospace, 'SF Mono', 'Cascadia Mono', monospace;
-  background: light-dark(#eee, #222);
-  padding: 0.1em 0.35em;
-  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.95em;
+  background: var(--color-surface-2);
+  padding: 0.1em 0.4em;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-subtle);
+}
+
+kbd {
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-bottom-width: 2px;
+  padding: 0.05em 0.4em;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+}
+
+/* -------- utility -------- */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+::selection {
+  background: var(--color-primary-soft);
+  color: var(--color-text);
+}
+
+/* scrollbars */
+@supports (scrollbar-width: thin) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-strong) transparent;
+  }
 }

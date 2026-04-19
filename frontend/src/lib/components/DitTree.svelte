@@ -2,6 +2,7 @@
   import { _ } from 'svelte-i18n';
   import { formatError, ldapReadEntry, type DnLabel } from '$lib/bridge';
   import DitNode from './DitNode.svelte';
+  import Icon from './Icon.svelte';
 
   interface Props {
     baseDn: string;
@@ -24,12 +25,11 @@
     error = null;
     try {
       const entry = await ldapReadEntry(dn);
-      // Fabricate a DnLabel from the base entry so the tree component
-      // sees a single, always-expandable root.
-      const objectClasses = entry.attributes
-        .find((a) => a.name.toLowerCase() === 'objectclass')
-        ?.values.filter((v) => v.kind === 'text')
-        .map((v) => (v as { kind: 'text'; data: string }).data) ?? [];
+      const objectClasses =
+        entry.attributes
+          .find((a) => a.name.toLowerCase() === 'objectclass')
+          ?.values.filter((v) => v.kind === 'text')
+          .map((v) => (v as { kind: 'text'; data: string }).data) ?? [];
       root = {
         dn: entry.dn,
         rdn: entry.dn.split(',')[0] ?? entry.dn,
@@ -48,7 +48,10 @@
 
 <nav aria-label={$_('tree.label')}>
   {#if loading}
-    <p class="status">{$_('tree.loading_base')}</p>
+    <p class="status">
+      <Icon name="refresh" size={13} />
+      <span>{$_('tree.loading_base')}</span>
+    </p>
   {:else if error}
     <p class="status error">{error}</p>
   {:else if root}
@@ -61,8 +64,9 @@
 <style>
   nav {
     overflow: auto;
-    padding: 0.5rem;
-    font-size: 0.9rem;
+    padding: 0.5rem 0.5rem;
+    font-size: var(--text-sm);
+    flex: 1;
   }
 
   ul {
@@ -72,12 +76,18 @@
   }
 
   .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
     padding: 0.5rem;
-    color: light-dark(#666, #888);
-    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
   }
 
   .status.error {
-    color: #c0392b;
+    color: var(--color-danger);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    word-break: break-word;
   }
 </style>

@@ -6,11 +6,11 @@
     ldapDelete,
     ldapModify,
     ldapReadEntry,
-    type Attribute,
     type AttributeValue,
     type Entry,
     type Modification
   } from '$lib/bridge';
+  import Icon from './Icon.svelte';
 
   interface Props {
     dn: string | null;
@@ -24,9 +24,6 @@
   let error = $state<string | null>(null);
   let filter = $state('');
 
-  // Edit mode keeps a working copy of the text attributes (binary ones
-  // are kept read-only in MVP). Saving computes the per-attribute
-  // diff against `originalText`.
   let editing = $state(false);
   let draftText = $state<Record<string, string[]>>({});
   let originalText = $state<Record<string, string[]>>({});
@@ -41,9 +38,6 @@
     }
   });
 
-  // Keyboard shortcuts are dispatched as window CustomEvents by
-  // `+page.svelte` so this component stays the authority on editing
-  // state and the currently selected DN.
   $effect(() => {
     const onSave = () => {
       if (editing && !saving) void save();
@@ -121,6 +115,8 @@
     return mods;
   }
 
+  const pendingMods = $derived(editing ? computeDiff() : []);
+
   async function save() {
     if (!dn) return;
     const mods = computeDiff();
@@ -193,8 +189,12 @@
     try {
       await navigator.clipboard.writeText(text);
     } catch {
-      /* clipboard may be unavailable — ignore in MVP */
+      /* ignore */
     }
+  }
+
+  function isBinary(v: AttributeValue): v is { kind: 'binary'; data: string } {
+    return v.kind === 'binary';
   }
 
   const displayAttributes = $derived(
@@ -202,196 +202,309 @@
       ? entry.attributes.filter((a) => a.name.toLowerCase().includes(filter.toLowerCase()))
       : (entry?.attributes ?? [])
   );
-
-  function binaryValues(attr: Attribute): AttributeValue[] {
-    return attr.values.filter((v) => v.kind === 'binary');
-  }
 </script>
 
-<section>
+<section class="panel">
   {#if !dn}
-    <p class="empty">{$_('entry.empty')}</p>
+    <div class="empty">
+      <div class="empty-icon"><Icon name="database" size={28} /></div>
+      <p>{$_('entry.empty')}</p>
+    </div>
   {:else if loading}
-    <p class="status">{$_('common.loading')}</p>
+    <div class="empty">
+      <Icon name="refresh" size={14} />
+      <p>{$_('common.loading')}</p>
+    </div>
   {:else if !entry}
     {#if error}
       <p class="status error">{error}</p>
     {/if}
   {:else}
     <header>
-      <code class="dn" title={entry.dn}>{entry.dn}</code>
+      <div class="title">
+        <Icon name="file-lock" size={14} />
+        <code class="dn" title={entry.dn}>{entry.dn}</code>
+      </div>
       <div class="actions">
         {#if editing}
-          <button type="button" onclick={save} disabled={saving}>
-            {saving ? $_('entry.actions.saving') : $_('entry.actions.save')}
+          {#if pendingMods.length > 0}
+            <span class="pill dirty" aria-live="polite">
+              {pendingMods.length}
+              {pendingMods.length === 1 ? 'change' : 'changes'}
+            </span>
+          {/if}
+          <button type="button" class="ghost" onclick={cancelEdit} disabled={saving}>
+            <Icon name="x" size={14} />
+            <span>{$_('entry.actions.cancel')}</span>
           </button>
-          <button type="button" class="secondary" onclick={cancelEdit} disabled={saving}>
-            {$_('entry.actions.cancel')}
+          <button type="button" class="primary" onclick={save} disabled={saving}>
+            <Icon name={saving ? 'refresh' : 'save'} size={14} />
+            <span>{saving ? $_('entry.actions.saving') : $_('entry.actions.save')}</span>
           </button>
         {:else}
-          <input
-            type="search"
-            placeholder={$_('entry.filter_placeholder')}
-            bind:value={filter}
-          />
-          <button type="button" onclick={() => (editing = true)}>{$_('entry.actions.edit')}</button>
+          <label class="search-wrap">
+            <Icon name="search" size={13} />
+            <input type="search" placeholder={$_('entry.filter_placeholder')} bind:value={filter} />
+          </label>
+          <button type="button" onclick={() => (editing = true)}>
+            <Icon name="pencil" size={13} />
+            <span>{$_('entry.actions.edit')}</span>
+          </button>
           <button type="button" class="danger" onclick={confirmDelete} disabled={saving}>
-            {$_('entry.actions.delete')}
+            <Icon name="trash" size={13} />
+            <span>{$_('entry.actions.delete')}</span>
           </button>
         {/if}
       </div>
     </header>
 
     {#if error}
-      <p class="status error">{error}</p>
+      <p class="status banner error">{error}</p>
     {/if}
 
-    {#if editing}
-      <div class="edit-area">
-        {#each Object.entries(draftText) as [name, values] (name)}
-          <fieldset>
-            <legend>{name}</legend>
-            {#each values as _value, i}
-              <div class="row">
-                <input
-                  type="text"
-                  value={values[i]}
-                  oninput={(e) =>
-                    updateValue(name, i, (e.currentTarget as HTMLInputElement).value)}
-                />
-                <button type="button" class="icon-btn" onclick={() => removeValue(name, i)}>
-                  ×
-                </button>
+    <div class="body">
+      {#if editing}
+        <div class="edit-area">
+          {#each Object.entries(draftText) as [name, values] (name)}
+            <div class="edit-field">
+              <div class="edit-head">
+                <code class="attr-name">{name}</code>
+                <span class="value-count">{values.length}</span>
               </div>
-            {/each}
-            <button type="button" class="tertiary" onclick={() => addValue(name)}>
-              {$_('entry.add_value')}
-            </button>
-          </fieldset>
-        {/each}
-
-        <div class="add-attr">
-          <input
-            type="text"
-            placeholder={$_('entry.new_attribute_placeholder')}
-            bind:value={newAttrName}
-            onkeydown={(e) => e.key === 'Enter' && addAttribute()}
-          />
-          <button type="button" onclick={addAttribute}>{$_('entry.add_attribute')}</button>
-        </div>
-      </div>
-    {:else}
-      <table>
-        <thead>
-          <tr>
-            <th scope="col">{$_('entry.column_attribute')}</th>
-            <th scope="col">{$_('entry.column_value')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each displayAttributes as attr (attr.name)}
-            {@const values = attr.values}
-            {#each values as value, i (i)}
-              <tr>
-                {#if i === 0}
-                  <th scope="row" rowspan={values.length}>{attr.name}</th>
-                {/if}
-                <td>
-                  {#if value.kind === 'text'}
+              <div class="edit-values">
+                {#each values as _v, i}
+                  <div class="edit-row">
+                    <input
+                      type="text"
+                      value={values[i]}
+                      oninput={(e) =>
+                        updateValue(name, i, (e.currentTarget as HTMLInputElement).value)}
+                    />
                     <button
                       type="button"
-                      class="value"
-                      onclick={() => copy(value.data)}
-                      title={$_('entry.copy_title')}
+                      class="ghost icon-only"
+                      onclick={() => removeValue(name, i)}
+                      aria-label="Remove value"
                     >
-                      {value.data}
+                      <Icon name="x" size={13} />
                     </button>
-                  {:else}
-                    <span class="binary" title="{value.data.length} base64 chars">
-                      {$_('entry.binary_value', { values: { count: value.data.length } })}
-                    </span>
-                  {/if}
-                </td>
-              </tr>
-            {/each}
-            {#if binaryValues(attr).length > 0 && values.every((v) => v.kind === 'binary')}
-              <!-- already rendered in loop -->
-            {/if}
+                  </div>
+                {/each}
+                <button type="button" class="ghost sm add-val" onclick={() => addValue(name)}>
+                  <Icon name="plus" size={12} />
+                  <span>{$_('entry.add_value')}</span>
+                </button>
+              </div>
+            </div>
           {/each}
-        </tbody>
-      </table>
-    {/if}
+
+          <div class="add-attr">
+            <input
+              type="text"
+              placeholder={$_('entry.new_attribute_placeholder')}
+              bind:value={newAttrName}
+              onkeydown={(e) => e.key === 'Enter' && (e.preventDefault(), addAttribute())}
+            />
+            <button type="button" class="primary sm" onclick={addAttribute}>
+              <Icon name="plus" size={13} />
+              <span>{$_('entry.add_attribute')}</span>
+            </button>
+          </div>
+        </div>
+      {:else}
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">{$_('entry.column_attribute')}</th>
+              <th scope="col">{$_('entry.column_value')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each displayAttributes as attr (attr.name)}
+              {@const values = attr.values}
+              {#each values as value, i (i)}
+                <tr>
+                  {#if i === 0}
+                    <th scope="row" rowspan={values.length}>
+                      <code>{attr.name}</code>
+                    </th>
+                  {/if}
+                  <td>
+                    {#if isBinary(value)}
+                      <span class="binary" title="{value.data.length} b64 chars">
+                        <Icon name="file-lock" size={11} />
+                        <span>
+                          {$_('entry.binary_value', { values: { count: value.data.length } })}
+                        </span>
+                      </span>
+                    {:else}
+                      <button
+                        type="button"
+                        class="value"
+                        onclick={() => copy(value.data)}
+                        title={$_('entry.copy_title')}
+                      >
+                        {value.data}
+                      </button>
+                    {/if}
+                  </td>
+                </tr>
+              {/each}
+            {/each}
+          </tbody>
+        </table>
+      {/if}
+    </div>
   {/if}
 </section>
 
 <style>
-  section {
-    overflow: auto;
-    padding: 0.75rem 1rem;
-  }
-
-  .empty,
-  .status {
-    color: light-dark(#666, #888);
-    margin: 0.5rem 0;
-  }
-
-  .status.error {
-    color: #c0392b;
+  .panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    height: 100%;
   }
 
   header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    gap: 1rem;
-    margin-bottom: 0.75rem;
+    gap: 0.75rem;
+    padding: 0.6rem 1rem;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
     flex-wrap: wrap;
   }
 
+  .title {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--color-text-muted);
+  }
+
   .dn {
-    word-break: break-all;
+    font-size: 0.82rem;
+    color: var(--color-text);
+    background: transparent;
+    border: none;
+    padding: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
   }
 
   .actions {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.4rem;
     align-items: center;
   }
 
-  header input[type='search'],
-  .add-attr input,
-  fieldset input[type='text'] {
-    font: inherit;
-    padding: 0.35rem 0.55rem;
-    border: 1px solid light-dark(#ccc, #333);
-    background: light-dark(#fff, #0e0e0e);
-    color: inherit;
-    border-radius: 4px;
+  .pill {
+    padding: 0.1rem 0.55rem;
+    border-radius: var(--radius-pill);
+    font-size: var(--text-xs);
+    font-weight: 600;
   }
 
-  header input[type='search'] {
-    min-width: 12rem;
+  .pill.dirty {
+    background: color-mix(in oklab, var(--color-warning) 18%, transparent);
+    color: var(--color-warning);
   }
+
+  .search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .search-wrap :global(svg) {
+    position: absolute;
+    left: 0.55rem;
+    color: var(--color-text-subtle);
+    pointer-events: none;
+  }
+
+  .search-wrap input {
+    padding-left: 1.85rem;
+    width: 12rem;
+  }
+
+  .status.banner {
+    margin: 0.6rem 1rem 0;
+    padding: 0.55rem 0.85rem;
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+  }
+
+  .status.error {
+    color: var(--color-danger);
+    background: var(--color-danger-soft);
+    border: 1px solid color-mix(in oklab, var(--color-danger) 25%, transparent);
+  }
+
+  .body {
+    flex: 1;
+    overflow: auto;
+    padding: 0.25rem 0.75rem 2rem;
+  }
+
+  /* -------- view mode table -------- */
 
   table {
     width: 100%;
-    border-collapse: collapse;
-    font-size: 0.9rem;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: var(--text-sm);
   }
 
-  th,
-  td {
+  thead th {
+    text-align: left;
+    padding: 0.55rem 0.75rem;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-subtle);
+    border-bottom: 1px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    background: var(--color-bg);
+    z-index: 1;
+  }
+
+  tbody th {
     text-align: left;
     vertical-align: top;
-    padding: 0.3rem 0.5rem;
-    border-bottom: 1px solid light-dark(#eee, #262626);
+    padding: 0.45rem 0.75rem;
+    width: 12rem;
+    font-weight: 500;
+    color: var(--color-text);
+    border-bottom: 1px solid var(--color-border-subtle);
   }
 
-  th {
-    width: 14rem;
-    font-weight: 600;
-    color: light-dark(#333, #ddd);
+  tbody th code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: 0.78rem;
+    color: var(--color-text);
+  }
+
+  tbody td {
+    padding: 0.45rem 0.75rem;
+    border-bottom: 1px solid var(--color-border-subtle);
+    color: var(--color-text);
+    vertical-align: top;
+  }
+
+  tbody tr:hover td,
+  tbody tr:hover th {
+    background: var(--color-surface-hover);
   }
 
   .value {
@@ -400,8 +513,8 @@
     padding: 0;
     font: inherit;
     color: inherit;
-    cursor: copy;
     text-align: left;
+    cursor: copy;
     word-break: break-word;
   }
 
@@ -410,75 +523,114 @@
   }
 
   .binary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
     font-style: italic;
-    color: light-dark(#777, #888);
   }
+
+  /* -------- edit mode -------- */
 
   .edit-area {
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
+    padding-top: 0.75rem;
   }
 
-  fieldset {
-    border: 1px solid light-dark(#ddd, #333);
-    border-radius: 5px;
-    padding: 0.5rem 0.75rem;
+  .edit-field {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    overflow: hidden;
   }
 
-  fieldset legend {
-    font-weight: 600;
-    padding: 0 0.25rem;
-    font-size: 0.9rem;
-  }
-
-  .row {
+  .edit-head {
     display: flex;
-    gap: 0.35rem;
-    margin-bottom: 0.3rem;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.75rem;
+    background: var(--color-surface-2);
+    border-bottom: 1px solid var(--color-border-subtle);
   }
 
-  .row input {
-    flex: 1;
-  }
-
-  .icon-btn {
-    width: 1.75rem;
+  .attr-name {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    background: transparent;
+    border: none;
     padding: 0;
+    color: var(--color-text);
+    font-weight: 500;
+  }
+
+  .value-count {
+    font-size: 0.7rem;
+    padding: 0.05rem 0.4rem;
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border);
+  }
+
+  .edit-values {
+    padding: 0.5rem 0.65rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .edit-row {
+    display: flex;
+    gap: 0.3rem;
+  }
+
+  .edit-row input {
+    flex: 1;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+  }
+
+  .add-val {
+    align-self: flex-start;
   }
 
   .add-attr {
     display: flex;
-    gap: 0.5rem;
-    margin-top: 0.25rem;
+    gap: 0.4rem;
+    padding: 0.75rem;
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface-2);
   }
 
   .add-attr input {
     flex: 1;
   }
 
-  .danger {
-    border-color: #c0392b;
-    color: #c0392b;
+  /* -------- empty state -------- */
+
+  .empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
   }
 
-  .danger:hover {
-    background: #fdedec;
-  }
-
-  .secondary,
-  .tertiary {
-    background: transparent;
-  }
-
-  .tertiary {
-    border: none;
-    color: light-dark(#0057b7, #7aaeff);
-    padding: 0.1rem 0.25rem;
-    font-size: 0.85rem;
-  }
-
-  .tertiary:hover {
-    text-decoration: underline;
+  .empty-icon {
+    display: grid;
+    place-items: center;
+    width: 3.2rem;
+    height: 3.2rem;
+    border-radius: var(--radius-xl);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-subtle);
   }
 </style>
