@@ -49,6 +49,28 @@ ldapex/
 
 ## Installation
 
+### End users (pre-built binaries)
+
+Linux / macOS — one-liner that fetches the latest GitHub release and
+installs to the standard location (AppImage in `~/.local/bin` on
+Linux, `Ldapex.app` in `/Applications` on macOS):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/cgdev2019/ldapex/main/install.sh | sh
+```
+
+Windows (PowerShell ≥ 5, elevated):
+
+```powershell
+iwr -useb https://raw.githubusercontent.com/cgdev2019/ldapex/main/install.ps1 | iex
+```
+
+Pin a specific version with `LDAPEX_VERSION=v1.2.3` (shell) or
+`$env:LDAPEX_VERSION='v1.2.3'` (PowerShell). Uninstall on Unix with
+`./uninstall.sh` (use `--all` to also drop `~/.ldapex`).
+
+### Developers (from source)
+
 ```bash
 git clone https://github.com/cgdev2019/ldapex.git
 cd ldapex
