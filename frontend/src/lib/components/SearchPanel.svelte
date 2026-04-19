@@ -1,8 +1,17 @@
 <script lang="ts">
   import { get } from 'svelte/store';
   import { _ } from 'svelte-i18n';
-  import { formatError, ldapSearch, type Entry, type SearchScope } from '$lib/bridge';
+  import {
+    formatError,
+    ldapFetchSchema,
+    ldapSearch,
+    type AttributeTypeDef,
+    type Entry,
+    type SearchScope
+  } from '$lib/bridge';
+  import { compile, EMPTY_GROUP, tryParse, type Group } from '$lib/filter';
   import { session } from '$lib/session.svelte';
+  import FilterBuilder from './FilterBuilder.svelte';
   import Icon from './Icon.svelte';
 
   interface Props {
@@ -20,8 +29,45 @@
   let error = $state<string | null>(null);
   let results = $state<Entry[]>([]);
   let history = $state<string[]>([]);
+  let mode = $state<'raw' | 'visual'>('visual');
+  let group = $state<Group>(parseOrEmpty('(objectClass=*)'));
+  let attributeTypes = $state<AttributeTypeDef[]>([]);
 
   const HISTORY_MAX = 20;
+
+  $effect(() => {
+    void loadAttrs();
+  });
+
+  async function loadAttrs() {
+    if (attributeTypes.length > 0) return;
+    try {
+      const s = await ldapFetchSchema();
+      attributeTypes = s.attribute_types;
+    } catch {
+      /* schema fetch is optional for the filter builder */
+    }
+  }
+
+  function parseOrEmpty(f: string): Group {
+    const parsed = tryParse(f);
+    if (parsed && parsed.kind === 'group') return parsed;
+    if (parsed && parsed.kind === 'leaf') {
+      return { kind: 'group', op: 'and', children: [parsed] };
+    }
+    return EMPTY_GROUP();
+  }
+
+  function syncFromBuilder(next: Group) {
+    group = next;
+    filter = compile(next);
+  }
+
+  function switchMode(target: 'raw' | 'visual') {
+    if (target === 'visual') group = parseOrEmpty(filter);
+    else filter = compile(group);
+    mode = target;
+  }
 
   $effect(() => {
     searchBase = baseDn;
@@ -125,21 +171,52 @@
     </label>
   </div>
 
-  <label>
-    <span>{$_('search.filter')}</span>
-    <input
-      type="text"
-      bind:value={filter}
-      placeholder="(&amp;(objectClass=person)(cn=a*))"
-      spellcheck="false"
-      list="ldapex-search-history"
-    />
-    <datalist id="ldapex-search-history">
-      {#each history as h (h)}
-        <option value={h}></option>
-      {/each}
-    </datalist>
-  </label>
+  <div class="filter-block">
+    <div class="filter-head">
+      <span class="lbl">{$_('search.filter')}</span>
+      <div class="mode-switch" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'visual'}
+          class:active={mode === 'visual'}
+          onclick={() => switchMode('visual')}
+        >
+          Visuel
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'raw'}
+          class:active={mode === 'raw'}
+          onclick={() => switchMode('raw')}
+        >
+          RFC 4515
+        </button>
+      </div>
+    </div>
+
+    {#if mode === 'visual'}
+      <FilterBuilder
+        bind:root={group}
+        attributes={attributeTypes}
+        onchange={syncFromBuilder}
+      />
+    {:else}
+      <input
+        type="text"
+        bind:value={filter}
+        placeholder="(&amp;(objectClass=person)(cn=a*))"
+        spellcheck="false"
+        list="ldapex-search-history"
+      />
+      <datalist id="ldapex-search-history">
+        {#each history as h (h)}
+          <option value={h}></option>
+        {/each}
+      </datalist>
+    {/if}
+  </div>
 
   <div class="actions">
     <button type="submit" class="primary sm" disabled={loading}>
@@ -231,6 +308,50 @@
   select {
     font-family: var(--font-mono);
     font-size: 0.78rem;
+  }
+
+  .filter-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .filter-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .lbl {
+    color: var(--color-text-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 0.65rem;
+  }
+
+  .mode-switch {
+    display: flex;
+    background: var(--color-surface-2);
+    border-radius: var(--radius-pill);
+    padding: 0.1rem;
+  }
+
+  .mode-switch button {
+    background: transparent;
+    border: none;
+    padding: 0.1rem 0.5rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.65rem;
+    color: var(--color-text-muted);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+  }
+
+  .mode-switch button.active {
+    background: var(--color-primary);
+    color: white;
   }
 
   .actions {
