@@ -6,6 +6,7 @@
     type AppAction
   } from '$lib/components/CommandPalette.svelte';
   import CreateEntryDialog from '$lib/components/CreateEntryDialog.svelte';
+  import CsvImportDialog from '$lib/components/CsvImportDialog.svelte';
   import DitTree from '$lib/components/DitTree.svelte';
   import EntryPanel from '$lib/components/EntryPanel.svelte';
   import Icon from '$lib/components/Icon.svelte';
@@ -23,6 +24,7 @@
   let selectedDn = $state<string | null>(null);
   let sidePanel = $state<'browse' | 'search' | 'bookmarks' | 'schema'>('browse');
   let creatingUnder = $state<string | null>(null);
+  let csvImportUnder = $state<string | null | false>(false);
   let treeRefreshKey = $state(0);
   let paletteOpen = $state(false);
 
@@ -153,6 +155,15 @@
         <Icon name="command" size={14} />
         <kbd>Ctrl K</kbd>
       </button>
+      <button
+        type="button"
+        class="ghost"
+        onclick={() => (csvImportUnder = selectedDn ?? session.baseDn)}
+        title="Import CSV → LDIF"
+      >
+        <Icon name="import" size={14} />
+        <span class="hide-sm">CSV</span>
+      </button>
       <button type="button" class="primary" onclick={openCreate} title={$_('nav.new_entry_tooltip')}>
         <Icon name="plus" size={15} />
         <span>{$_('nav.new_entry')}</span>
@@ -254,6 +265,14 @@
       parentDn={creatingUnder}
       onclose={() => (creatingUnder = null)}
       oncreated={onCreated}
+    />
+  {/if}
+
+  {#if csvImportUnder !== false}
+    <CsvImportDialog
+      parentDn={csvImportUnder}
+      onclose={() => (csvImportUnder = false)}
+      oncreated={() => (treeRefreshKey += 1)}
     />
   {/if}
 
