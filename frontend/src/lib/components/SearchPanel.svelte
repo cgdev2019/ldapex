@@ -1,5 +1,6 @@
 <script lang="ts">
   import { formatError, ldapSearch, type Entry, type SearchScope } from '$lib/bridge';
+  import { session } from '$lib/session.svelte';
 
   interface Props {
     baseDn: string;
@@ -15,12 +16,65 @@
   let loading = $state(false);
   let error = $state<string | null>(null);
   let results = $state<Entry[]>([]);
+  let history = $state<string[]>([]);
+
+  const HISTORY_MAX = 20;
 
   $effect(() => {
     // If the caller changes the base DN (e.g. fresh login), prefill it
     // but leave the filter/scope alone.
     searchBase = baseDn;
   });
+
+  $effect(() => {
+    history = loadHistory(historyKey());
+  });
+
+  /**
+   * History is scoped per profile so a work Prod filter does not
+   * autocomplete a personal test server. Quick-connect sessions share
+   * the `adhoc` bucket.
+   */
+  function historyKey(): string {
+    const id = session.activeProfileId ?? 'adhoc';
+    return `ldapex.search-history.${id}`;
+  }
+
+  function loadHistory(key: string): string[] {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return [];
+      const parsed: unknown = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter((v): v is string => typeof v === 'string');
+    } catch {
+      return [];
+    }
+  }
+
+  function rememberFilter(value: string) {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    const key = historyKey();
+    const next = [trimmed, ...history.filter((h) => h !== trimmed)].slice(0, HISTORY_MAX);
+    history = next;
+    try {
+      localStorage.setItem(key, JSON.stringify(next));
+    } catch {
+      /* quota exceeded or storage disabled — ignore */
+    }
+  }
+
+  function clearHistory() {
+    if (history.length === 0) return;
+    if (!window.confirm('Effacer l\u2019historique des filtres pour ce profil ?')) return;
+    history = [];
+    try {
+      localStorage.removeItem(historyKey());
+    } catch {
+      /* ignore */
+    }
+  }
 
   async function run(event: SubmitEvent) {
     event.preventDefault();
@@ -34,6 +88,7 @@
         attributes: ['cn', 'uid', 'ou', 'mail'],
         size_limit: sizeLimit > 0 ? sizeLimit : null
       });
+      rememberFilter(filter);
     } catch (err) {
       error = formatError(err);
       results = [];
@@ -81,12 +136,30 @@
       bind:value={filter}
       placeholder="(&amp;(objectClass=person)(cn=a*))"
       spellcheck="false"
+      list="ldapex-search-history"
     />
+    <datalist id="ldapex-search-history">
+      {#each history as h (h)}
+        <option value={h}></option>
+      {/each}
+    </datalist>
   </label>
 
-  <button type="submit" disabled={loading}>
-    {loading ? 'Recherche…' : 'Rechercher'}
-  </button>
+  <div class="actions">
+    <button type="submit" disabled={loading}>
+      {loading ? 'Recherche…' : 'Rechercher'}
+    </button>
+    {#if history.length > 0}
+      <button
+        type="button"
+        class="tertiary"
+        onclick={clearHistory}
+        title="Effacer l'historique"
+      >
+        Effacer historique ({history.length})
+      </button>
+    {/if}
+  </div>
 </form>
 
 {#if error}
@@ -142,6 +215,18 @@
     background: light-dark(#fff, #0e0e0e);
     color: inherit;
     border-radius: 4px;
+  }
+
+  .actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .tertiary {
+    background: transparent;
+    font-size: 0.8rem;
+    color: light-dark(#666, #888);
   }
 
   .status {

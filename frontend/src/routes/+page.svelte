@@ -5,12 +5,26 @@
   import LoginForm from '$lib/components/LoginForm.svelte';
   import ProfilePicker from '$lib/components/ProfilePicker.svelte';
   import SearchPanel from '$lib/components/SearchPanel.svelte';
+  import { registerShortcuts } from '$lib/shortcuts.svelte';
   import { session } from '$lib/session.svelte';
 
   let selectedDn = $state<string | null>(null);
   let sidePanel = $state<'browse' | 'search'>('browse');
   let creatingUnder = $state<string | null>(null);
   let treeRefreshKey = $state(0);
+
+  $effect(() => {
+    if (!session.connected) return;
+    return registerShortcuts({
+      onFocusSearch: () => {
+        sidePanel = 'search';
+      },
+      onNewEntry: openCreate,
+      onRefresh: () => {
+        treeRefreshKey += 1;
+      }
+    });
+  });
 
   function onselect(dn: string) {
     selectedDn = dn;
@@ -48,7 +62,9 @@
   <header class="topbar">
     <strong>{session.bindDn ?? '(anonyme)'}</strong>
     <span class="url">@ {session.url}</span>
-    <button type="button" onclick={openCreate}>+ Entrée</button>
+    <button type="button" onclick={openCreate} title="Nouvelle entrée (Ctrl+N)">
+      + Entrée
+    </button>
     <button type="button" onclick={onDisconnect}>Déconnexion</button>
   </header>
 
@@ -70,6 +86,7 @@
           aria-selected={sidePanel === 'search'}
           class:active={sidePanel === 'search'}
           onclick={() => (sidePanel = 'search')}
+          title="Recherche (Ctrl+F)"
         >
           Recherche
         </button>
