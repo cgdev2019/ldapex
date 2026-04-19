@@ -1,6 +1,7 @@
 <script lang="ts">
   import { _, locale } from 'svelte-i18n';
   import BookmarksPanel from '$lib/components/BookmarksPanel.svelte';
+  import BulkBar from '$lib/components/BulkBar.svelte';
   import CommandPalette, {
     type AppAction
   } from '$lib/components/CommandPalette.svelte';
@@ -13,6 +14,7 @@
   import SchemaPanel from '$lib/components/SchemaPanel.svelte';
   import SearchPanel from '$lib/components/SearchPanel.svelte';
   import ThemeToggle from '$lib/components/ThemeToggle.svelte';
+  import { selection } from '$lib/selection.svelte';
   import { bookmarks, recents } from '$lib/bookmarks.svelte';
   import { setLocale, type SupportedLocale } from '$lib/i18n';
   import { registerShortcuts } from '$lib/shortcuts.svelte';
@@ -234,6 +236,12 @@
           <SchemaPanel />
         {/if}
       </div>
+      <BulkBar
+        onchanged={() => {
+          treeRefreshKey += 1;
+          if (selectedDn && !selection.has(selectedDn)) selectedDn = null;
+        }}
+      />
     </aside>
 
     <main class="detail">

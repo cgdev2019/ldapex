@@ -1,6 +1,7 @@
 <script lang="ts">
   import { _ } from 'svelte-i18n';
   import { formatError, ldapListChildren, type DnLabel } from '$lib/bridge';
+  import { selection } from '$lib/selection.svelte';
   import type { IconName } from './Icon.svelte';
   import Icon from './Icon.svelte';
   import DitNode from './DitNode.svelte';
@@ -66,13 +67,21 @@
     <button
       type="button"
       class="label"
-      onclick={() => onselect(node.dn)}
+      onclick={(e) => {
+        if (e.ctrlKey || e.metaKey) selection.toggle(node.dn);
+        else onselect(node.dn);
+      }}
       title={node.dn}
     >
       <span class="icon" aria-hidden="true">
         <Icon name={nodeIcon()} size={14} />
       </span>
       <span class="text">{node.label}</span>
+      {#if selection.has(node.dn)}
+        <span class="sel-mark" aria-hidden="true">
+          <Icon name="check" size={11} />
+        </span>
+      {/if}
     </button>
   </div>
 
@@ -166,6 +175,18 @@
 
   .row.selected .icon {
     color: var(--color-primary);
+  }
+
+  .sel-mark {
+    margin-left: auto;
+    color: var(--color-primary);
+    background: var(--color-primary-soft);
+    border-radius: var(--radius-pill);
+    width: 1rem;
+    height: 1rem;
+    display: inline-grid;
+    place-items: center;
+    flex-shrink: 0;
   }
 
   .text {
