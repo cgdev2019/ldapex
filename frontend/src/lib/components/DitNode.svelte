@@ -104,9 +104,9 @@
   .row {
     display: flex;
     align-items: center;
-    padding: 0.15rem 0.25rem;
+    padding: 0.15rem 0.2rem;
     border-radius: var(--radius-sm);
-    gap: 0.05rem;
+    gap: 0;
     transition: background var(--transition-fast);
   }
 
@@ -124,13 +124,14 @@
   }
 
   .chevron {
-    width: 1.25rem;
-    height: 1.25rem;
+    width: 0.95rem;
+    height: 1.15rem;
     padding: 0;
     background: transparent;
     border: none;
     color: var(--color-text-subtle);
     border-radius: var(--radius-sm);
+    flex-shrink: 0;
   }
 
   .chevron:hover:not(:disabled) {
@@ -140,7 +141,7 @@
 
   .label {
     flex: 1;
-    padding: 0.15rem 0.35rem;
+    padding: 0.1rem 0.25rem;
     background: transparent;
     border: none;
     color: var(--color-text);
@@ -148,7 +149,7 @@
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.3rem;
     min-width: 0;
     border-radius: var(--radius-sm);
   }
@@ -175,7 +176,7 @@
 
   .children {
     padding: 0;
-    margin: 0 0 0 0.7rem;
+    margin: 0 0 0 0.5rem;
     border-left: 1px dashed var(--color-border);
   }
 
