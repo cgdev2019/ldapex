@@ -1,7 +1,7 @@
 use ldapex_core::{
-    entries_to_ldif, Attribute, ConnectOptions, ConnectionProfile, DnLabel, Entry, LdapClient,
-    LdapexError, Modification, Result as CoreResult, SchemaInfo, SearchParams, SearchScope,
-    TlsMode,
+    entries_to_ldif, schema::resolve_must_may, Attribute, ConnectOptions, ConnectionProfile,
+    DnLabel, Entry, LdapClient, LdapexError, Modification, ResolvedClass, Result as CoreResult,
+    SchemaInfo, SearchParams, SearchScope, TlsMode,
 };
 use serde::{Deserialize, Serialize};
 use tauri::State;
@@ -171,6 +171,25 @@ pub async fn ldap_fetch_schema(state: State<'_, AppState>) -> CoreResult<SchemaI
     let guard = state.session.lock().await;
     let client = guard.as_ref().ok_or(LdapexError::NotConnected)?;
     client.fetch_schema().await
+}
+
+/// Resolve the effective MUST/MAY for one or more objectClasses. The
+/// frontend passes the full schema (so we don't refetch on every
+/// click) plus the names to resolve; the result is one
+/// `ResolvedClass` per name. Unknown names are skipped silently.
+#[derive(Debug, Deserialize)]
+pub struct ResolveClassesInput {
+    pub schema: SchemaInfo,
+    pub names: Vec<String>,
+}
+
+#[tauri::command]
+pub fn schema_resolve_classes(input: ResolveClassesInput) -> Vec<ResolvedClass> {
+    input
+        .names
+        .iter()
+        .filter_map(|n| resolve_must_may(n, &input.schema.object_classes))
+        .collect()
 }
 
 /// Export a DN (and optionally its subtree) to a single RFC 2849 LDIF

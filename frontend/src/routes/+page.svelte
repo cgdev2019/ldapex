@@ -10,6 +10,7 @@
   import Icon from '$lib/components/Icon.svelte';
   import LoginForm from '$lib/components/LoginForm.svelte';
   import ProfilePicker from '$lib/components/ProfilePicker.svelte';
+  import SchemaPanel from '$lib/components/SchemaPanel.svelte';
   import SearchPanel from '$lib/components/SearchPanel.svelte';
   import { bookmarks, recents } from '$lib/bookmarks.svelte';
   import { setLocale, type SupportedLocale } from '$lib/i18n';
@@ -17,7 +18,7 @@
   import { session } from '$lib/session.svelte';
 
   let selectedDn = $state<string | null>(null);
-  let sidePanel = $state<'browse' | 'search' | 'bookmarks'>('browse');
+  let sidePanel = $state<'browse' | 'search' | 'bookmarks' | 'schema'>('browse');
   let creatingUnder = $state<string | null>(null);
   let treeRefreshKey = $state(0);
   let paletteOpen = $state(false);
@@ -60,6 +61,9 @@
         break;
       case 'switch-bookmarks':
         sidePanel = 'bookmarks';
+        break;
+      case 'switch-schema':
+        sidePanel = 'schema';
         break;
       case 'refresh':
         treeRefreshKey += 1;
@@ -203,6 +207,16 @@
             <span class="tab-count">{bookmarks.items.length}</span>
           {/if}
         </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={sidePanel === 'schema'}
+          class:active={sidePanel === 'schema'}
+          onclick={() => (sidePanel = 'schema')}
+        >
+          <Icon name="database" size={14} />
+          <span>{$_('tabs.schema')}</span>
+        </button>
       </nav>
 
       <div class="side-body">
@@ -212,8 +226,10 @@
           {/key}
         {:else if sidePanel === 'search'}
           <SearchPanel baseDn={session.baseDn} {onselect} />
-        {:else}
+        {:else if sidePanel === 'bookmarks'}
           <BookmarksPanel {selectedDn} {onselect} />
+        {:else}
+          <SchemaPanel />
         {/if}
       </div>
     </aside>

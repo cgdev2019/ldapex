@@ -7,8 +7,11 @@ use tracing::{debug, instrument};
 
 use crate::{
     error::{LdapexError, Result},
-    schema::{attribute_name, parse_object_class},
-    types::{Attribute, AttributeValue, DnLabel, Entry, Modification, SchemaInfo, SearchParams},
+    schema::{attribute_name, parse_attribute_type, parse_object_class},
+    types::{
+        Attribute, AttributeTypeDef, AttributeValue, DnLabel, Entry, Modification, SchemaInfo,
+        SearchParams,
+    },
 };
 
 /// TLS negotiation strategy. `None` is only valid over loopback or a
@@ -249,15 +252,22 @@ impl LdapClient {
             .ok_or_else(|| LdapexError::NoSuchObject(subschema_dn.clone()))?;
 
         let mut attribute_names: Vec<String> = Vec::new();
+        let mut attribute_types: Vec<AttributeTypeDef> = Vec::new();
         let mut object_classes = Vec::new();
 
         for attr in entry.attributes {
             match attr.name.to_ascii_lowercase().as_str() {
                 "attributetypes" => {
-                    attribute_names.extend(attr.values.into_iter().filter_map(|v| match v {
-                        AttributeValue::Text(t) => attribute_name(&t),
-                        AttributeValue::Binary(_) => None,
-                    }));
+                    for v in attr.values {
+                        let AttributeValue::Text(t) = v else { continue };
+                        if let Some(parsed) = parse_attribute_type(&t) {
+                            attribute_names.push(parsed.name.clone());
+                            attribute_names.extend(parsed.aliases.iter().cloned());
+                            attribute_types.push(parsed);
+                        } else if let Some(name) = attribute_name(&t) {
+                            attribute_names.push(name);
+                        }
+                    }
                 }
                 "objectclasses" => {
                     object_classes.extend(attr.values.into_iter().filter_map(|v| match v {
@@ -269,8 +279,13 @@ impl LdapClient {
             }
         }
 
-        attribute_names.sort();
-        attribute_names.dedup();
+        attribute_names.sort_by(|a, b| a.to_ascii_lowercase().cmp(&b.to_ascii_lowercase()));
+        attribute_names.dedup_by(|a, b| a.eq_ignore_ascii_case(b));
+        attribute_types.sort_by(|a, b| {
+            a.name
+                .to_ascii_lowercase()
+                .cmp(&b.name.to_ascii_lowercase())
+        });
         object_classes.sort_by(|a, b| {
             a.name
                 .to_ascii_lowercase()
@@ -280,6 +295,7 @@ impl LdapClient {
         Ok(SchemaInfo {
             subschema_dn,
             attribute_names,
+            attribute_types,
             object_classes,
         })
     }

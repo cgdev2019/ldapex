@@ -32,6 +32,7 @@ pub fn run() {
             commands::ldap_delete,
             commands::ldap_rename,
             commands::ldap_fetch_schema,
+            commands::schema_resolve_classes,
             commands::ldap_export_ldif,
             commands::profile_list,
             commands::profile_save,

@@ -16,6 +16,7 @@
     | 'switch-search'
     | 'switch-tree'
     | 'switch-bookmarks'
+    | 'switch-schema'
     | 'disconnect'
     | 'refresh';
 
@@ -49,6 +50,7 @@
       { key: 'switch-tree', label: $_('tabs.tree'), icon: 'folder' },
       { key: 'switch-search', label: $_('tabs.search'), icon: 'search' },
       { key: 'switch-bookmarks', label: $_('tabs.bookmarks'), icon: 'star' },
+      { key: 'switch-schema', label: $_('tabs.schema'), icon: 'database' },
       { key: 'refresh', label: 'Refresh tree', icon: 'refresh' },
       { key: 'disconnect', label: $_('nav.disconnect'), icon: 'log-out' }
     ];

@@ -123,7 +123,8 @@
     "tree": "Tree",
     "search": "Search",
     "search_tooltip": "Search (Ctrl+F)",
-    "bookmarks": "Bookmarks"
+    "bookmarks": "Bookmarks",
+    "schema": "Schema"
   },
   "bookmark": {
     "add": "Bookmark this entry",

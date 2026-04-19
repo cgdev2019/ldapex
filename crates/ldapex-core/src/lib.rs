@@ -16,8 +16,8 @@ pub use error::{LdapexError, Result};
 pub use ldif::entries_to_ldif;
 pub use profile::{ConnectionProfile, ProfileStore, PROFILE_SCHEMA_VERSION};
 pub use types::{
-    Attribute, AttributeValue, DnLabel, Entry, Modification, ObjectClassDef, ObjectClassKind,
-    SchemaInfo, SearchParams, SearchScope,
+    Attribute, AttributeTypeDef, AttributeValue, DnLabel, Entry, Modification, ObjectClassDef,
+    ObjectClassKind, ResolvedClass, SchemaInfo, SearchParams, SearchScope,
 };
 
 /// Semantic version of the core crate.

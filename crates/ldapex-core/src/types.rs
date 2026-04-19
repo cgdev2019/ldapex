@@ -61,14 +61,20 @@ pub enum Modification {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SchemaInfo {
     pub subschema_dn: String,
+    /// Backwards-compat: every attribute name we extracted (plain list).
     pub attribute_names: Vec<String>,
+    /// Parsed attribute-type definitions (sorted by primary name).
+    #[serde(default)]
+    pub attribute_types: Vec<AttributeTypeDef>,
+    /// Parsed objectClass definitions (sorted by name).
     pub object_classes: Vec<ObjectClassDef>,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ObjectClassKind {
     Abstract,
+    #[default]
     Structural,
     Auxiliary,
 }
@@ -82,6 +88,48 @@ pub struct ObjectClassDef {
     #[serde(default)]
     pub must: Vec<String>,
     #[serde(default)]
+    pub may: Vec<String>,
+}
+
+/// Parsed RFC 4512 `attributeTypes` definition. Only the bits the UI
+/// actually needs: name, OID, single/multi-valued, syntax, and the
+/// SUP chain so the schema explorer can show inheritance.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct AttributeTypeDef {
+    pub name: String,
+    #[serde(default)]
+    pub oid: String,
+    #[serde(default)]
+    pub aliases: Vec<String>,
+    #[serde(default)]
+    pub sup: Option<String>,
+    #[serde(default)]
+    pub syntax: Option<String>,
+    #[serde(default)]
+    pub equality: Option<String>,
+    #[serde(default)]
+    pub ordering: Option<String>,
+    #[serde(default)]
+    pub substring: Option<String>,
+    #[serde(default)]
+    pub single_valued: bool,
+    #[serde(default)]
+    pub no_user_modification: bool,
+    /// `userApplications` / `directoryOperation` /
+    /// `distributedOperation` / `dSAOperation`.
+    #[serde(default)]
+    pub usage: Option<String>,
+}
+
+/// Effective MUST/MAY attribute lists for a given objectClass after
+/// resolving the SUP chain. Returned by
+/// [`crate::schema::resolve_must_may`].
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+pub struct ResolvedClass {
+    pub name: String,
+    pub kind: ObjectClassKind,
+    pub sup_chain: Vec<String>,
+    pub must: Vec<String>,
     pub may: Vec<String>,
 }
 

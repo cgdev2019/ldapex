@@ -157,9 +157,32 @@ export interface ObjectClassDef {
   may: string[];
 }
 
+export interface AttributeTypeDef {
+  name: string;
+  oid: string;
+  aliases: string[];
+  sup?: string | null;
+  syntax?: string | null;
+  equality?: string | null;
+  ordering?: string | null;
+  substring?: string | null;
+  single_valued: boolean;
+  no_user_modification: boolean;
+  usage?: string | null;
+}
+
+export interface ResolvedClass {
+  name: string;
+  kind: ObjectClassKind;
+  sup_chain: string[];
+  must: string[];
+  may: string[];
+}
+
 export interface SchemaInfo {
   subschema_dn: string;
   attribute_names: string[];
+  attribute_types: AttributeTypeDef[];
   object_classes: ObjectClassDef[];
 }
 
@@ -194,6 +217,13 @@ export async function ldapRename(input: RenameInput): Promise<void> {
 
 export async function ldapFetchSchema(): Promise<SchemaInfo> {
   return invoke<SchemaInfo>('ldap_fetch_schema');
+}
+
+export async function schemaResolveClasses(
+  schema: SchemaInfo,
+  names: string[]
+): Promise<ResolvedClass[]> {
+  return invoke<ResolvedClass[]>('schema_resolve_classes', { input: { schema, names } });
 }
 
 export interface ExportLdifInput {
