@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { _ } from 'svelte-i18n';
   import { formatError, type TlsMode } from '$lib/bridge';
   import { session } from '$lib/session.svelte';
 
@@ -24,40 +25,40 @@
 </script>
 
 <form onsubmit={onSubmit}>
-  <h2>Connexion rapide</h2>
-  <p class="hint">Pour une session ponctuelle. Pour sauvegarder, crée un profil ci-dessus.</p>
+  <h2>{$_('login.title')}</h2>
+  <p class="hint">{$_('login.hint')}</p>
 
   <label>
-    <span>URL</span>
+    <span>{$_('login.url')}</span>
     <input type="text" bind:value={url} required placeholder="ldap://host:389" />
   </label>
 
   <label>
-    <span>Bind DN</span>
+    <span>{$_('login.bind_dn')}</span>
     <input type="text" bind:value={bindDn} placeholder="cn=admin,dc=example,dc=org" />
   </label>
 
   <label>
-    <span>Mot de passe</span>
+    <span>{$_('login.password')}</span>
     <input type="password" bind:value={password} autocomplete="current-password" />
   </label>
 
   <label>
-    <span>Base DN</span>
+    <span>{$_('login.base_dn')}</span>
     <input type="text" bind:value={baseDn} required placeholder="dc=example,dc=org" />
   </label>
 
   <label>
-    <span>TLS</span>
+    <span>{$_('login.tls')}</span>
     <select bind:value={tls}>
-      <option value="none">Aucun (ldap://)</option>
-      <option value="start_tls">StartTLS</option>
-      <option value="ldaps">LDAPS (ldaps://)</option>
+      <option value="none">{$_('login.tls_none')}</option>
+      <option value="start_tls">{$_('login.tls_starttls')}</option>
+      <option value="ldaps">{$_('login.tls_ldaps')}</option>
     </select>
   </label>
 
   <button type="submit" disabled={session.connecting}>
-    {session.connecting ? 'Connexion…' : 'Se connecter'}
+    {session.connecting ? $_('common.connecting') : $_('login.submit')}
   </button>
 
   {#if error}

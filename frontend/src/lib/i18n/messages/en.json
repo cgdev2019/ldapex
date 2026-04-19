@@ -1,0 +1,117 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving…",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "loading": "Loading…",
+    "anonymous": "(anonymous)",
+    "connecting": "Connecting…",
+    "connect": "Connect"
+  },
+  "login": {
+    "title": "Quick connection",
+    "hint": "For a one-off session. To save it, create a profile above.",
+    "url": "URL",
+    "bind_dn": "Bind DN",
+    "password": "Password",
+    "base_dn": "Base DN",
+    "tls": "TLS",
+    "tls_none": "None (ldap://)",
+    "tls_starttls": "StartTLS",
+    "tls_ldaps": "LDAPS (ldaps://)",
+    "submit": "Connect"
+  },
+  "profile": {
+    "picker": {
+      "title": "Saved profiles",
+      "import": "Import…",
+      "export": "Export",
+      "new": "+ New",
+      "no_profiles": "No profile yet. Click “+ New” to create one.",
+      "password_stored": "Password stored in ~/.ldapex/profiles.toml",
+      "confirm_delete": "Delete profile “{name}”?\n\nThe stored password will be removed too.",
+      "export_ok": "Profiles copied to the clipboard (JSON, passwords included).",
+      "import_prompt": "Paste a JSON profile export here:",
+      "password_dialog_title": "Password for “{name}”",
+      "password_dialog_remember": "Save in profile (~/.ldapex/profiles.toml)"
+    },
+    "editor": {
+      "new_title": "New profile",
+      "edit_title": "Edit “{name}”",
+      "default_name": "New profile",
+      "name": "Name",
+      "url": "URL",
+      "url_placeholder": "ldap://host:389 or ldaps://host:636",
+      "bind_dn": "Bind DN (empty = anonymous)",
+      "base_dn": "Base DN",
+      "tls_none": "None (not recommended in production)",
+      "tls_starttls": "StartTLS",
+      "tls_ldaps": "LDAPS (ldaps://)",
+      "password_label": "Password (empty = prompt every time)",
+      "password_placeholder_stored": "•••••• (already stored, leave empty to keep)",
+      "password_hint": "Stored in plain text in ~/.ldapex/profiles.toml (chmod 0600 on Unix).",
+      "save": "Save",
+      "saving": "Saving…"
+    }
+  },
+  "entry": {
+    "empty": "Select an entry in the tree to view its attributes.",
+    "filter_placeholder": "Filter…",
+    "column_attribute": "Attribute",
+    "column_value": "Value",
+    "binary_value": "<binary — {count} b64>",
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save",
+      "saving": "Saving…",
+      "cancel": "Cancel"
+    },
+    "copy_title": "Copy",
+    "confirm_delete": "Permanently delete this entry?\n\n{dn}\n\nThis action cannot be undone.",
+    "new_attribute_placeholder": "New attribute (e.g. description)",
+    "add_attribute": "Add",
+    "add_value": "+ value"
+  },
+  "tree": {
+    "label": "LDAP tree",
+    "loading_base": "Loading base…",
+    "loading": "Loading…",
+    "empty_children": "(no children)",
+    "expand": "Expand",
+    "collapse": "Collapse"
+  },
+  "create_entry": {
+    "title": "New entry under",
+    "fetching_schema": "Fetching schema…",
+    "schema_error": "Schema: {message}",
+    "rdn": "RDN",
+    "default_rdn": "cn=New user",
+    "object_classes_label": "Object classes (MUST/MAY below)",
+    "must": "MUST",
+    "may": "MAY",
+    "may_hidden": "… ({count} MAY attributes hidden — add them later in edit mode)",
+    "submit": "Create",
+    "submitting": "Creating…"
+  },
+  "errors": {
+    "invalid_credentials": "Invalid credentials.",
+    "not_connected": "LDAP session closed.",
+    "no_such_object": "Entry not found: {message}",
+    "protocol_with_code": "LDAP error {code}: {message}",
+    "protocol": "LDAP error: {message}",
+    "tls": "TLS: {message}",
+    "io": "I/O: {message}",
+    "invalid_input": "Invalid input: {message}",
+    "internal": "Internal error: {message}",
+    "unknown": "unknown"
+  },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "fr": "Français"
+  }
+}

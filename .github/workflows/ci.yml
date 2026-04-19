@@ -117,3 +117,13 @@ jobs:
             pkg-config
       - run: npm --prefix frontend ci
       - run: cargo build --release -p ldapex-app
+
+  user-docs:
+    name: User guide — mdBook build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: mdbook
+      - run: mdbook build docs/user-guide

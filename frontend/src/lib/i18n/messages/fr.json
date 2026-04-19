@@ -1,0 +1,117 @@
+{
+  "common": {
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "delete": "Supprimer",
+    "edit": "Éditer",
+    "close": "Fermer",
+    "loading": "Chargement…",
+    "anonymous": "(anonyme)",
+    "connecting": "Connexion…",
+    "connect": "Se connecter"
+  },
+  "login": {
+    "title": "Connexion rapide",
+    "hint": "Pour une session ponctuelle. Pour sauvegarder, crée un profil ci-dessus.",
+    "url": "URL",
+    "bind_dn": "Bind DN",
+    "password": "Mot de passe",
+    "base_dn": "Base DN",
+    "tls": "TLS",
+    "tls_none": "Aucun (ldap://)",
+    "tls_starttls": "StartTLS",
+    "tls_ldaps": "LDAPS (ldaps://)",
+    "submit": "Se connecter"
+  },
+  "profile": {
+    "picker": {
+      "title": "Profils enregistrés",
+      "import": "Importer…",
+      "export": "Exporter",
+      "new": "+ Nouveau",
+      "no_profiles": "Aucun profil. Clique sur « + Nouveau » pour en créer un.",
+      "password_stored": "Mot de passe enregistré dans ~/.ldapex/profiles.toml",
+      "confirm_delete": "Supprimer le profil « {name} » ?\n\nLe mot de passe stocké sera aussi retiré.",
+      "export_ok": "Profils copiés dans le presse-papier (JSON, mots de passe inclus).",
+      "import_prompt": "Colle ici un export JSON de profils :",
+      "password_dialog_title": "Mot de passe pour « {name} »",
+      "password_dialog_remember": "Mémoriser dans le profil (~/.ldapex/profiles.toml)"
+    },
+    "editor": {
+      "new_title": "Nouveau profil",
+      "edit_title": "Modifier « {name} »",
+      "default_name": "Nouveau profil",
+      "name": "Nom",
+      "url": "URL",
+      "url_placeholder": "ldap://host:389 ou ldaps://host:636",
+      "bind_dn": "Bind DN (vide = anonyme)",
+      "base_dn": "Base DN",
+      "tls_none": "Aucun (déconseillé en prod)",
+      "tls_starttls": "StartTLS",
+      "tls_ldaps": "LDAPS (ldaps://)",
+      "password_label": "Mot de passe (vide = demandé à chaque connexion)",
+      "password_placeholder_stored": "•••••• (déjà stocké, laisser vide pour conserver)",
+      "password_hint": "Stocké en clair dans ~/.ldapex/profiles.toml (chmod 0600 sous Unix).",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…"
+    }
+  },
+  "entry": {
+    "empty": "Sélectionne une entrée dans l'arbre pour afficher ses attributs.",
+    "filter_placeholder": "Filtrer…",
+    "column_attribute": "Attribut",
+    "column_value": "Valeur",
+    "binary_value": "<binaire — {count} b64>",
+    "actions": {
+      "edit": "Éditer",
+      "delete": "Supprimer",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "cancel": "Annuler"
+    },
+    "copy_title": "Copier",
+    "confirm_delete": "Supprimer définitivement cette entrée ?\n\n{dn}\n\nCette action est irréversible.",
+    "new_attribute_placeholder": "Nouvel attribut (p. ex. description)",
+    "add_attribute": "Ajouter",
+    "add_value": "+ valeur"
+  },
+  "tree": {
+    "label": "Arborescence LDAP",
+    "loading_base": "Chargement de la base…",
+    "loading": "Chargement…",
+    "empty_children": "(aucun enfant)",
+    "expand": "Déplier",
+    "collapse": "Replier"
+  },
+  "create_entry": {
+    "title": "Nouvelle entrée sous",
+    "fetching_schema": "Récupération du schéma…",
+    "schema_error": "Schéma : {message}",
+    "rdn": "RDN",
+    "default_rdn": "cn=Nouvel utilisateur",
+    "object_classes_label": "Object classes (MUST/MAY ci-dessous)",
+    "must": "MUST",
+    "may": "MAY",
+    "may_hidden": "… ({count} attributs MAY masqués, à ajouter ensuite en édition)",
+    "submit": "Créer",
+    "submitting": "Création…"
+  },
+  "errors": {
+    "invalid_credentials": "Identifiants invalides.",
+    "not_connected": "Session LDAP fermée.",
+    "no_such_object": "Entrée introuvable : {message}",
+    "protocol_with_code": "Erreur LDAP {code} : {message}",
+    "protocol": "Erreur LDAP : {message}",
+    "tls": "TLS : {message}",
+    "io": "I/O : {message}",
+    "invalid_input": "Entrée invalide : {message}",
+    "internal": "Erreur interne : {message}",
+    "unknown": "inconnue"
+  },
+  "language": {
+    "label": "Langue",
+    "en": "English",
+    "fr": "Français"
+  }
+}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { _ } from 'svelte-i18n';
   import { formatError, ldapReadEntry, type DnLabel } from '$lib/bridge';
   import DitNode from './DitNode.svelte';
 
@@ -45,9 +46,9 @@
   }
 </script>
 
-<nav aria-label="Arborescence LDAP">
+<nav aria-label={$_('tree.label')}>
   {#if loading}
-    <p class="status">Chargement de la base…</p>
+    <p class="status">{$_('tree.loading_base')}</p>
   {:else if error}
     <p class="status error">{error}</p>
   {:else if root}

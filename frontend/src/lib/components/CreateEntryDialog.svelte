@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
+  import { _ } from 'svelte-i18n';
   import {
     formatError,
     ldapAdd,
@@ -21,7 +23,7 @@
   let schemaError = $state<string | null>(null);
 
   let selectedClassNames = $state<string[]>(['inetOrgPerson']);
-  let rdn = $state('cn=Nouvel utilisateur');
+  let rdn = $state(get(_)('create_entry.default_rdn'));
   let attrValues = $state<Record<string, string>>({});
   let saving = $state(false);
   let error = $state<string | null>(null);
@@ -120,25 +122,25 @@
   }
 </script>
 
-<div class="backdrop" role="dialog" aria-modal="true" aria-label="Créer une entrée">
+<div class="backdrop" role="dialog" aria-modal="true" aria-label={$_('create_entry.title')}>
   <div class="dialog">
-    <h2>Nouvelle entrée sous <code>{parentDn}</code></h2>
+    <h2>{$_('create_entry.title')} <code>{parentDn}</code></h2>
 
     {#if loadingSchema}
-      <p class="status">Récupération du schéma…</p>
+      <p class="status">{$_('create_entry.fetching_schema')}</p>
     {:else if schemaError}
-      <p class="status error">Schéma : {schemaError}</p>
+      <p class="status error">{$_('create_entry.schema_error', { values: { message: schemaError } })}</p>
     {/if}
 
     <form onsubmit={submit}>
       <label>
-        <span>RDN</span>
+        <span>{$_('create_entry.rdn')}</span>
         <input type="text" bind:value={rdn} required spellcheck="false" />
       </label>
 
       {#if schema}
         <label>
-          <span>Object classes (MUST/MAY ci-dessous)</span>
+          <span>{$_('create_entry.object_classes_label')}</span>
           <div class="class-picker">
             {#each schema.object_classes.filter((c) => c.kind !== 'abstract') as oc (oc.name)}
               <label class="chip">
@@ -157,7 +159,7 @@
 
       {#if must.length > 0}
         <fieldset>
-          <legend>MUST</legend>
+          <legend>{$_('create_entry.must')}</legend>
           {#each must as name (name)}
             {@const current = attrValues[name] ?? ''}
             <label class="kv">
@@ -178,7 +180,7 @@
 
       {#if may.length > 0}
         <fieldset>
-          <legend>MAY</legend>
+          <legend>{$_('create_entry.may')}</legend>
           {#each may.slice(0, 15) as name (name)}
             {@const current = attrValues[name] ?? ''}
             <label class="kv">
@@ -195,7 +197,7 @@
             </label>
           {/each}
           {#if may.length > 15}
-            <p class="muted">… ({may.length - 15} attributs MAY masqués, à ajouter ensuite en édition)</p>
+            <p class="muted">{$_('create_entry.may_hidden', { values: { count: may.length - 15 } })}</p>
           {/if}
         </fieldset>
       {/if}
@@ -205,9 +207,11 @@
       {/if}
 
       <div class="actions">
-        <button type="submit" disabled={saving}>{saving ? 'Création…' : 'Créer'}</button>
+        <button type="submit" disabled={saving}>
+          {saving ? $_('create_entry.submitting') : $_('create_entry.submit')}
+        </button>
         <button type="button" class="secondary" onclick={onclose} disabled={saving}>
-          Annuler
+          {$_('common.cancel')}
         </button>
       </div>
     </form>

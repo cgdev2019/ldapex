@@ -3,15 +3,17 @@
 //! mobile target.
 
 mod commands;
+mod logging;
 mod profiles;
 
 use commands::AppState;
-use tracing_subscriber::EnvFilter;
 
 /// Entry point shared between `main.rs` and any alternative binary.
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    init_tracing();
+    // Hold on to the appender guard for the lifetime of the process so
+    // the background log-writer thread keeps flushing.
+    let _log_guard = logging::init();
 
     let state = AppState::new().expect("initialise profile storage");
 
@@ -38,10 +40,4 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running Ldapex");
-}
-
-fn init_tracing() {
-    let filter =
-        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info,ldapex=debug"));
-    let _ = tracing_subscriber::fmt().with_env_filter(filter).try_init();
 }

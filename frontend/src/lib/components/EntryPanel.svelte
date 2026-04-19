@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
+  import { _ } from 'svelte-i18n';
   import {
     formatError,
     ldapDelete,
@@ -154,9 +156,7 @@
 
   async function confirmDelete() {
     if (!dn) return;
-    const yes = window.confirm(
-      `Supprimer définitivement cette entrée ?\n\n${dn}\n\nCette action est irréversible.`
-    );
+    const yes = window.confirm(get(_)('entry.confirm_delete', { values: { dn } }));
     if (!yes) return;
     saving = true;
     error = null;
@@ -192,9 +192,9 @@
 
 <section>
   {#if !dn}
-    <p class="empty">Sélectionne une entrée dans l'arbre pour afficher ses attributs.</p>
+    <p class="empty">{$_('entry.empty')}</p>
   {:else if loading}
-    <p class="status">Chargement…</p>
+    <p class="status">{$_('common.loading')}</p>
   {:else if !entry}
     {#if error}
       <p class="status error">{error}</p>
@@ -205,20 +205,20 @@
       <div class="actions">
         {#if editing}
           <button type="button" onclick={save} disabled={saving}>
-            {saving ? 'Enregistrement…' : 'Enregistrer'}
+            {saving ? $_('entry.actions.saving') : $_('entry.actions.save')}
           </button>
           <button type="button" class="secondary" onclick={cancelEdit} disabled={saving}>
-            Annuler
+            {$_('entry.actions.cancel')}
           </button>
         {:else}
           <input
             type="search"
-            placeholder="Filtrer…"
+            placeholder={$_('entry.filter_placeholder')}
             bind:value={filter}
           />
-          <button type="button" onclick={() => (editing = true)}>Éditer</button>
+          <button type="button" onclick={() => (editing = true)}>{$_('entry.actions.edit')}</button>
           <button type="button" class="danger" onclick={confirmDelete} disabled={saving}>
-            Supprimer
+            {$_('entry.actions.delete')}
           </button>
         {/if}
       </div>
@@ -247,7 +247,7 @@
               </div>
             {/each}
             <button type="button" class="tertiary" onclick={() => addValue(name)}>
-              + valeur
+              {$_('entry.add_value')}
             </button>
           </fieldset>
         {/each}
@@ -255,19 +255,19 @@
         <div class="add-attr">
           <input
             type="text"
-            placeholder="Nouvel attribut (p. ex. description)"
+            placeholder={$_('entry.new_attribute_placeholder')}
             bind:value={newAttrName}
             onkeydown={(e) => e.key === 'Enter' && addAttribute()}
           />
-          <button type="button" onclick={addAttribute}>Ajouter</button>
+          <button type="button" onclick={addAttribute}>{$_('entry.add_attribute')}</button>
         </div>
       </div>
     {:else}
       <table>
         <thead>
           <tr>
-            <th scope="col">Attribut</th>
-            <th scope="col">Valeur</th>
+            <th scope="col">{$_('entry.column_attribute')}</th>
+            <th scope="col">{$_('entry.column_value')}</th>
           </tr>
         </thead>
         <tbody>
@@ -284,13 +284,13 @@
                       type="button"
                       class="value"
                       onclick={() => copy(value.data)}
-                      title="Copier"
+                      title={$_('entry.copy_title')}
                     >
                       {value.data}
                     </button>
                   {:else}
-                    <span class="binary" title="{value.data.length} caractères base64">
-                      &lt;binaire — {value.data.length} b64&gt;
+                    <span class="binary" title="{value.data.length} base64 chars">
+                      {$_('entry.binary_value', { values: { count: value.data.length } })}
                     </span>
                   {/if}
                 </td>

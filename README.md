@@ -73,6 +73,12 @@ npm --prefix frontend run check   # svelte-check
 npm --prefix frontend run lint
 ```
 
+The app writes daily-rotated logs to `~/.ldapex/logs/ldapex.log.YYYY-MM-DD`
+in addition to stdout. Lines that look like `password=…` or `password: …`
+are redacted before reaching either sink, so the file is safe to attach
+to bug reports. Tune verbosity with `RUST_LOG`, e.g.
+`RUST_LOG=ldapex=debug cargo tauri dev`.
+
 Integration tests against a real LDAP server (spins up a bitnami
 OpenLDAP container seeded from `docker/openldap/seed.ldif`):
 

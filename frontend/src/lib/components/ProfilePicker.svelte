@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
+  import { _ } from 'svelte-i18n';
   import {
     formatError,
     profileDelete,
@@ -69,8 +71,9 @@
   }
 
   async function confirmDelete(profile: ProfileSummary) {
+    const t = get(_);
     const yes = window.confirm(
-      `Supprimer le profil « ${profile.name} » ?\n\nLe mot de passe stocké sera aussi retiré.`
+      t('profile.picker.confirm_delete', { values: { name: profile.name } })
     );
     if (!yes) return;
     try {
@@ -85,14 +88,14 @@
     try {
       const json = await profileExport();
       await navigator.clipboard.writeText(json);
-      window.alert('Profils copiés dans le presse-papier (JSON, mots de passe inclus).');
+      window.alert(get(_)('profile.picker.export_ok'));
     } catch (err) {
       error = formatError(err);
     }
   }
 
   async function doImport() {
-    const raw = window.prompt('Colle ici un export JSON de profils :');
+    const raw = window.prompt(get(_)('profile.picker.import_prompt'));
     if (!raw) return;
     try {
       await profileImport(raw);
@@ -105,18 +108,18 @@
 
 <section>
   <header>
-    <h2>Profils enregistrés</h2>
+    <h2>{$_('profile.picker.title')}</h2>
     <div class="tools">
-      <button type="button" class="tertiary" onclick={doImport}>Importer…</button>
+      <button type="button" class="tertiary" onclick={doImport}>{$_('profile.picker.import')}</button>
       <button type="button" class="tertiary" onclick={doExport} disabled={profiles.length === 0}>
-        Exporter
+        {$_('profile.picker.export')}
       </button>
-      <button type="button" onclick={() => (creating = true)}>+ Nouveau</button>
+      <button type="button" onclick={() => (creating = true)}>{$_('profile.picker.new')}</button>
     </div>
   </header>
 
   {#if loading}
-    <p class="status">Chargement…</p>
+    <p class="status">{$_('common.loading')}</p>
   {:else if error}
     <p class="status error">{error}</p>
   {/if}
@@ -129,24 +132,24 @@
             <div class="line1">
               <strong>{p.name}</strong>
               {#if p.has_saved_password}
-                <span class="tag" title="Mot de passe enregistré dans ~/.ldapex/profiles.toml">🔑</span>
+                <span class="tag" title={$_('profile.picker.password_stored')}>🔑</span>
               {/if}
               <span class="tls">{p.tls}</span>
             </div>
             <div class="line2">
-              {p.bind_dn || '(anonyme)'} @ {p.url}
+              {p.bind_dn || $_('common.anonymous')} @ {p.url}
             </div>
             <div class="line3">{p.base_dn}</div>
           </button>
           <div class="actions">
-            <button type="button" class="icon-btn" onclick={() => (editing = p)} title="Modifier">
+            <button type="button" class="icon-btn" onclick={() => (editing = p)} title={$_('common.edit')}>
               ✎
             </button>
             <button
               type="button"
               class="icon-btn danger"
               onclick={() => confirmDelete(p)}
-              title="Supprimer"
+              title={$_('common.delete')}
             >
               ×
             </button>
@@ -155,7 +158,7 @@
       {/each}
     </ul>
   {:else if !loading}
-    <p class="empty">Aucun profil. Clique sur « + Nouveau » pour en créer un.</p>
+    <p class="empty">{$_('profile.picker.no_profiles')}</p>
   {/if}
 </section>
 
@@ -181,10 +184,10 @@
 {/if}
 
 {#if passwordPromptFor}
-  <div class="backdrop" role="dialog" aria-modal="true" aria-label="Mot de passe">
+  <div class="backdrop" role="dialog" aria-modal="true" aria-label={$_('login.password')}>
     <form class="pw-dialog" onsubmit={submitPassword}>
-      <h3>Mot de passe pour « {passwordPromptFor.name} »</h3>
-      <p class="bind">{passwordPromptFor.bind_dn || '(anonyme)'}</p>
+      <h3>{$_('profile.picker.password_dialog_title', { values: { name: passwordPromptFor.name } })}</h3>
+      <p class="bind">{passwordPromptFor.bind_dn || $_('common.anonymous')}</p>
 
       <input
         type="password"
@@ -196,12 +199,12 @@
 
       <label class="inline">
         <input type="checkbox" bind:checked={pendingRemember} />
-        <span>Mémoriser dans le profil (~/.ldapex/profiles.toml)</span>
+        <span>{$_('profile.picker.password_dialog_remember')}</span>
       </label>
 
       <div class="actions">
         <button type="submit" disabled={session.connecting}>
-          {session.connecting ? 'Connexion…' : 'Se connecter'}
+          {session.connecting ? $_('common.connecting') : $_('common.connect')}
         </button>
         <button
           type="button"
@@ -209,7 +212,7 @@
           onclick={() => (passwordPromptFor = null)}
           disabled={session.connecting}
         >
-          Annuler
+          {$_('common.cancel')}
         </button>
       </div>
     </form>
