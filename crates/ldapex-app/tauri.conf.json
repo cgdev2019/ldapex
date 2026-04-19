@@ -1,0 +1,41 @@
+{
+  "$schema": "https://schema.tauri.app/config/2.0.0",
+  "productName": "Ldapex",
+  "version": "0.1.0",
+  "identifier": "dev.cgdev.ldapex",
+  "build": {
+    "beforeDevCommand": "npm --prefix ../../frontend run dev",
+    "beforeBuildCommand": "npm --prefix ../../frontend run build",
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../../frontend/build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Ldapex",
+        "width": 1100,
+        "height": 720,
+        "minWidth": 800,
+        "minHeight": 500,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "category": "Utility",
+    "shortDescription": "LDAP directory browser",
+    "longDescription": "Desktop application to browse and edit an LDAP directory."
+  }
+}

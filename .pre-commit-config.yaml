@@ -1,0 +1,41 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+        exclude: ^(frontend/tsconfig\.json|crates/ldapex-app/tauri\.conf\.json|crates/ldapex-app/capabilities/.*\.json)$
+      - id: check-added-large-files
+
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: cargo fmt
+        language: system
+        types_or: [rust]
+        entry: cargo fmt --all -- --check
+        pass_filenames: false
+
+      - id: cargo-clippy
+        name: cargo clippy
+        language: system
+        types_or: [rust]
+        entry: cargo clippy --workspace --all-targets -- -D warnings
+        pass_filenames: false
+
+      - id: frontend-format
+        name: prettier (frontend)
+        language: system
+        files: ^frontend/
+        types_or: [javascript, jsx, ts, tsx, svelte, css, json, yaml, markdown]
+        entry: bash -lc 'cd frontend && npx prettier --check .'
+        pass_filenames: false
+
+      - id: frontend-lint
+        name: eslint (frontend)
+        language: system
+        files: ^frontend/.*\.(js|ts|svelte)$
+        entry: bash -lc 'cd frontend && npx eslint .'
+        pass_filenames: false
