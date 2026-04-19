@@ -1,6 +1,9 @@
 use std::{collections::HashSet, time::Duration};
 
-use ldap3::{LdapConnAsync, LdapConnSettings, Scope, SearchEntry, SearchOptions};
+use ldap3::{
+    adapters::{Adapter, EntriesOnly, PagedResults},
+    LdapConnAsync, LdapConnSettings, Scope, SearchEntry, SearchOptions,
+};
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 use tracing::{debug, instrument};
@@ -279,18 +282,10 @@ impl LdapClient {
             }
         }
 
-        attribute_names.sort_by(|a, b| a.to_ascii_lowercase().cmp(&b.to_ascii_lowercase()));
+        attribute_names.sort_by_key(|a| a.to_ascii_lowercase());
         attribute_names.dedup_by(|a, b| a.eq_ignore_ascii_case(b));
-        attribute_types.sort_by(|a, b| {
-            a.name
-                .to_ascii_lowercase()
-                .cmp(&b.name.to_ascii_lowercase())
-        });
-        object_classes.sort_by(|a, b| {
-            a.name
-                .to_ascii_lowercase()
-                .cmp(&b.name.to_ascii_lowercase())
-        });
+        attribute_types.sort_by_key(|a| a.name.to_ascii_lowercase());
+        object_classes.sort_by_key(|a| a.name.to_ascii_lowercase());
 
         Ok(SchemaInfo {
             subschema_dn,
@@ -314,6 +309,13 @@ impl LdapClient {
     /// into subsequent searches. We therefore reset the options on
     /// every entry, applying the requested `size_limit` (or 0 = the
     /// server default = unlimited for the rootdn) explicitly.
+    ///
+    /// When `size_limit` is `None` we transparently switch to a
+    /// `PagedResults` streaming search (RFC 2696, page size = 500). On
+    /// large directories this prevents `sizeLimitExceeded` errors and
+    /// keeps memory bounded — the caller still gets the full `Vec` at
+    /// the end, but we read it in pages instead of asking the server
+    /// for everything in one shot.
     async fn raw_search(
         &self,
         base: &str,
@@ -323,18 +325,37 @@ impl LdapClient {
         size_limit: Option<u32>,
     ) -> Result<Vec<Entry>> {
         let mut guard = self.inner.lock().await;
-        let limit_i32 = size_limit
-            .map(|n| i32::try_from(n).unwrap_or(i32::MAX))
-            .unwrap_or(0);
+        let limit_i32 = size_limit.map_or(0, |n| i32::try_from(n).unwrap_or(i32::MAX));
         guard.with_search_options(SearchOptions::new().sizelimit(limit_i32));
-        let (raw_entries, res) = guard.search(base, scope, filter, attrs).await?.success()?;
-        drop(res);
 
-        Ok(raw_entries
-            .into_iter()
-            .map(SearchEntry::construct)
-            .map(entry_from_search)
-            .collect())
+        if size_limit.is_some() {
+            // Bounded search → one round trip is enough.
+            let (raw_entries, res) = guard.search(base, scope, filter, attrs).await?.success()?;
+            drop(res);
+            return Ok(raw_entries
+                .into_iter()
+                .map(SearchEntry::construct)
+                .map(entry_from_search)
+                .collect());
+        }
+
+        // Unbounded search → page through PagedResultsControl so
+        // servers with a soft size cap (OpenLDAP defaults to 500)
+        // still hand us the full result set.
+        let owned: Vec<String> = attrs.iter().map(|s| (*s).to_string()).collect();
+        let adapters: Vec<Box<dyn Adapter<String, Vec<String>>>> = vec![
+            Box::new(EntriesOnly::new()),
+            Box::new(PagedResults::new(500)),
+        ];
+        let mut search = guard
+            .streaming_search_with(adapters, base, scope, filter, owned)
+            .await?;
+        let mut entries = Vec::new();
+        while let Some(re) = search.next().await? {
+            entries.push(entry_from_search(SearchEntry::construct(re)));
+        }
+        let _ = search.finish().await;
+        Ok(entries)
     }
 }
 
@@ -395,11 +416,7 @@ fn entry_from_search(se: SearchEntry) -> Entry {
         }
     }
 
-    attributes.sort_by(|a, b| {
-        a.name
-            .to_ascii_lowercase()
-            .cmp(&b.name.to_ascii_lowercase())
-    });
+    attributes.sort_by_key(|a| a.name.to_ascii_lowercase());
     Entry {
         dn: se.dn,
         attributes,
