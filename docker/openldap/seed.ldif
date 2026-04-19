@@ -1,0 +1,48 @@
+# Seed DIT for Ldapex integration tests.
+# Root: dc=ldapex,dc=test
+# Two OUs (People, Groups) with a handful of entries each.
+
+dn: dc=ldapex,dc=test
+objectClass: top
+objectClass: dcObject
+objectClass: organization
+o: Ldapex Test
+dc: ldapex
+
+dn: ou=People,dc=ldapex,dc=test
+objectClass: top
+objectClass: organizationalUnit
+ou: People
+
+dn: ou=Groups,dc=ldapex,dc=test
+objectClass: top
+objectClass: organizationalUnit
+ou: Groups
+
+dn: uid=alice,ou=People,dc=ldapex,dc=test
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Alice Example
+sn: Example
+uid: alice
+mail: alice@ldapex.test
+userPassword: alicepw
+
+dn: uid=bob,ou=People,dc=ldapex,dc=test
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Bob Example
+sn: Example
+uid: bob
+mail: bob@ldapex.test
+userPassword: bobpw
+
+dn: cn=admins,ou=Groups,dc=ldapex,dc=test
+objectClass: top
+objectClass: groupOfNames
+cn: admins
+member: uid=alice,ou=People,dc=ldapex,dc=test

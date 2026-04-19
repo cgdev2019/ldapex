@@ -4,6 +4,7 @@
 
 mod commands;
 
+use commands::AppState;
 use tracing_subscriber::EnvFilter;
 
 /// Entry point shared between `main.rs` and any alternative binary.
@@ -12,7 +13,14 @@ pub fn run() {
     init_tracing();
 
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![commands::ping])
+        .manage(AppState::default())
+        .invoke_handler(tauri::generate_handler![
+            commands::ping,
+            commands::ldap_connect,
+            commands::ldap_disconnect,
+            commands::ldap_list_children,
+            commands::ldap_read_entry,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running Ldapex");
 }

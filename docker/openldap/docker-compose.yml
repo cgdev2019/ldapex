@@ -1,0 +1,32 @@
+# OpenLDAP fixture for integration tests.
+#
+# Usage:
+#   docker compose -f docker/openldap/docker-compose.yml up -d
+#   cargo test -p ldapex-core --features integration-tests
+#   docker compose -f docker/openldap/docker-compose.yml down -v
+#
+# The server listens on localhost:3389 (plain). Admin bind is
+# cn=admin,dc=ldapex,dc=test / admin. A seed LDIF (seed.ldif) is
+# applied on first boot via the bitnami custom schema hook.
+
+services:
+  openldap:
+    image: bitnami/openldap:2.6
+    container_name: ldapex-openldap
+    ports:
+      - "3389:1389"
+    environment:
+      LDAP_ROOT: "dc=ldapex,dc=test"
+      LDAP_ADMIN_USERNAME: admin
+      LDAP_ADMIN_PASSWORD: admin
+      LDAP_CONFIG_ADMIN_ENABLED: "yes"
+      LDAP_CONFIG_ADMIN_USERNAME: config
+      LDAP_CONFIG_ADMIN_PASSWORD: config
+      LDAP_CUSTOM_LDIF_DIR: /ldifs
+      LDAP_SKIP_DEFAULT_TREE: "yes"
+    volumes:
+      - ./seed.ldif:/ldifs/00-seed.ldif:ro
+      - openldap-data:/bitnami/openldap
+
+volumes:
+  openldap-data:

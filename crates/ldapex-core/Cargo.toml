@@ -15,8 +15,16 @@ workspace = true
 anyhow.workspace = true
 thiserror.workspace = true
 serde = { workspace = true }
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
 tracing.workspace = true
+ldap3 = { version = "0.11", default-features = false, features = ["tls-rustls", "sync"] }
+base64 = "0.22"
 
 [dev-dependencies]
-tokio = { workspace = true, features = ["macros", "rt"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
+[features]
+# Enable integration tests that require a running OpenLDAP (see
+# `docker/openldap/docker-compose.yml`). Excluded from `cargo test` by
+# default so plain unit tests stay offline.
+integration-tests = []

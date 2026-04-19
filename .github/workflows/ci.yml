@@ -33,6 +33,41 @@ jobs:
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace
 
+  integration:
+    name: Integration — LDAP against OpenLDAP
+    runs-on: ubuntu-latest
+    services:
+      openldap:
+        image: bitnami/openldap:2.6
+        ports:
+          - 3389:1389
+        env:
+          LDAP_ROOT: "dc=ldapex,dc=test"
+          LDAP_ADMIN_USERNAME: admin
+          LDAP_ADMIN_PASSWORD: admin
+          LDAP_SKIP_DEFAULT_TREE: "yes"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Wait for OpenLDAP
+        run: |
+          for i in $(seq 1 30); do
+            if (echo > /dev/tcp/127.0.0.1/3389) 2>/dev/null; then
+              echo "OpenLDAP is up"; exit 0
+            fi
+            sleep 1
+          done
+          echo "OpenLDAP did not come up"; exit 1
+      - name: Seed fixture data
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ldap-utils
+          ldapadd -x -H ldap://127.0.0.1:3389 \
+            -D "cn=admin,dc=ldapex,dc=test" -w admin \
+            -f docker/openldap/seed.ldif
+      - run: cargo test -p ldapex-core --features integration-tests -- --nocapture
+
   frontend:
     name: Frontend — lint / typecheck / build
     runs-on: ubuntu-latest

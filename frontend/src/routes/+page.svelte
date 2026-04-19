@@ -1,74 +1,71 @@
 <script lang="ts">
-  import { ping, type PingResponse } from '$lib/bridge';
+  import LoginForm from '$lib/components/LoginForm.svelte';
+  import DitTree from '$lib/components/DitTree.svelte';
+  import EntryPanel from '$lib/components/EntryPanel.svelte';
+  import { session } from '$lib/session.svelte';
 
-  let result = $state<PingResponse | null>(null);
-  let error = $state<string | null>(null);
-  let loading = $state(false);
+  let selectedDn = $state<string | null>(null);
 
-  async function onPing() {
-    loading = true;
-    error = null;
-    try {
-      result = await ping();
-    } catch (err) {
-      error = err instanceof Error ? err.message : String(err);
-    } finally {
-      loading = false;
-    }
+  function onselect(dn: string) {
+    selectedDn = dn;
+  }
+
+  async function onDisconnect() {
+    await session.disconnect();
+    selectedDn = null;
   }
 </script>
 
-<main>
-  <h1>Ldapex</h1>
-  <p>Application de bureau pour visualiser et modifier un annuaire LDAP.</p>
+{#if !session.connected || !session.baseDn}
+  <LoginForm />
+{:else}
+  <header class="topbar">
+    <strong>{session.bindDn ?? '(anonyme)'}</strong>
+    <span class="url">@ {session.url}</span>
+    <button type="button" onclick={onDisconnect}>Déconnexion</button>
+  </header>
 
-  <button onclick={onPing} disabled={loading}>
-    {loading ? 'Ping…' : 'Tester le bridge Rust'}
-  </button>
-
-  {#if result}
-    <dl class="result">
-      <dt>message</dt>
-      <dd><code>{result.message}</code></dd>
-      <dt>core version</dt>
-      <dd><code>{result.core_version}</code></dd>
-      <dt>app version</dt>
-      <dd><code>{result.app_version}</code></dd>
-    </dl>
-  {/if}
-
-  {#if error}
-    <p class="error">Erreur : {error}</p>
-  {/if}
-</main>
+  <div class="layout">
+    <aside class="tree">
+      <DitTree baseDn={session.baseDn} {selectedDn} {onselect} />
+    </aside>
+    <main class="detail">
+      <EntryPanel dn={selectedDn} />
+    </main>
+  </div>
+{/if}
 
 <style>
-  main {
-    max-width: 42rem;
-    margin: 0 auto;
-    padding: 2rem 1.5rem;
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid light-dark(#ddd, #333);
+    font-size: 0.9rem;
   }
 
-  h1 {
-    margin-top: 0;
+  .topbar .url {
+    color: light-dark(#666, #888);
+    flex: 1;
   }
 
-  .result {
+  .layout {
     display: grid;
-    grid-template-columns: max-content 1fr;
-    gap: 0.25rem 1rem;
-    margin-top: 1.5rem;
+    grid-template-columns: minmax(14rem, 22rem) 1fr;
+    height: calc(100vh - 3rem);
   }
 
-  .result dt {
-    color: light-dark(#555, #aaa);
+  .tree {
+    border-right: 1px solid light-dark(#ddd, #333);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
-  .result dd {
-    margin: 0;
-  }
-
-  .error {
-    color: #c0392b;
+  .detail {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 </style>

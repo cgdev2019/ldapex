@@ -4,9 +4,13 @@
 //! Nothing here depends on Tauri so that the logic stays testable in
 //! isolation.
 
+pub mod client;
 pub mod error;
+pub mod types;
 
+pub use client::{ConnectOptions, LdapClient, TlsMode};
 pub use error::{LdapexError, Result};
+pub use types::{Attribute, AttributeValue, DnLabel, Entry};
 
 /// Semantic version of the core crate.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
