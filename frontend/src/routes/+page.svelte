@@ -7,6 +7,7 @@
   } from '$lib/components/CommandPalette.svelte';
   import CreateEntryDialog from '$lib/components/CreateEntryDialog.svelte';
   import CsvImportDialog from '$lib/components/CsvImportDialog.svelte';
+  import LdifWorkbench from '$lib/components/LdifWorkbench.svelte';
   import DitTree from '$lib/components/DitTree.svelte';
   import EntryPanel from '$lib/components/EntryPanel.svelte';
   import Icon from '$lib/components/Icon.svelte';
@@ -25,6 +26,7 @@
   let sidePanel = $state<'browse' | 'search' | 'bookmarks' | 'schema'>('browse');
   let creatingUnder = $state<string | null>(null);
   let csvImportUnder = $state<string | null | false>(false);
+  let ldifOpen = $state(false);
   let treeRefreshKey = $state(0);
   let paletteOpen = $state(false);
 
@@ -158,6 +160,15 @@
       <button
         type="button"
         class="ghost"
+        onclick={() => (ldifOpen = true)}
+        title="LDIF workbench"
+      >
+        <Icon name="file-lock" size={14} />
+        <span class="hide-sm">LDIF</span>
+      </button>
+      <button
+        type="button"
+        class="ghost"
         onclick={() => (csvImportUnder = selectedDn ?? session.baseDn)}
         title="Import CSV → LDIF"
       >
@@ -273,6 +284,13 @@
       parentDn={csvImportUnder}
       onclose={() => (csvImportUnder = false)}
       oncreated={() => (treeRefreshKey += 1)}
+    />
+  {/if}
+
+  {#if ldifOpen}
+    <LdifWorkbench
+      onclose={() => (ldifOpen = false)}
+      onchanged={() => (treeRefreshKey += 1)}
     />
   {/if}
 
