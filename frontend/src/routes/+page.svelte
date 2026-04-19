@@ -100,7 +100,7 @@
 {#if !session.connected || !session.baseDn}
   <div class="login-view">
     <header class="brand">
-      <div class="logo">L</div>
+      <img class="logo lg" src="/ldapex-logo.png" alt="Ldapex" width="52" height="52" />
       <div class="brand-text">
         <h1>Ldapex</h1>
         <p>LDAP directory browser</p>
@@ -123,7 +123,7 @@
 {:else}
   <header class="topbar">
     <div class="brand-chip">
-      <div class="logo sm">L</div>
+      <img class="logo sm" src="/ldapex-logo.png" alt="" width="26" height="26" />
       <span class="brand-name">Ldapex</span>
     </div>
 
@@ -273,24 +273,23 @@
   }
 
   .logo {
-    display: grid;
-    place-items: center;
-    width: 2.6rem;
-    height: 2.6rem;
+    display: block;
     border-radius: var(--radius-lg);
-    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-    color: #fff;
-    font-weight: 700;
-    font-size: 1.35rem;
-    letter-spacing: -0.02em;
     box-shadow: var(--shadow-md);
+    object-fit: contain;
+    background: transparent;
+  }
+
+  .logo.lg {
+    width: 3.2rem;
+    height: 3.2rem;
   }
 
   .logo.sm {
     width: 1.75rem;
     height: 1.75rem;
     border-radius: var(--radius-md);
-    font-size: 0.95rem;
+    box-shadow: none;
   }
 
   .topbar {
