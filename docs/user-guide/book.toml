@@ -1,0 +1,5 @@
+[book]
+title = "Ldapex user guide"
+authors = ["Ldapex contributors"]
+language = "en"
+src = "src"
