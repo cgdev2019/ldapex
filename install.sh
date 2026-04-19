@@ -117,6 +117,7 @@ Exec=$DEST
 Icon=ldapex
 Categories=Network;Utility;
 Terminal=false
+StartupWMClass=ldapex-app
 "
 
   LAUNCHER="$APPS_DIR/ldapex.desktop"
