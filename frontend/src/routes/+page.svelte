@@ -12,6 +12,7 @@
   import ProfilePicker from '$lib/components/ProfilePicker.svelte';
   import SchemaPanel from '$lib/components/SchemaPanel.svelte';
   import SearchPanel from '$lib/components/SearchPanel.svelte';
+  import ThemeToggle from '$lib/components/ThemeToggle.svelte';
   import { bookmarks, recents } from '$lib/bookmarks.svelte';
   import { setLocale, type SupportedLocale } from '$lib/i18n';
   import { registerShortcuts } from '$lib/shortcuts.svelte';
@@ -139,6 +140,7 @@
     </div>
 
     <div class="topbar-actions">
+      <ThemeToggle />
       <button
         type="button"
         class="ghost palette-btn"
